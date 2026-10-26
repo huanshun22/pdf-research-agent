@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Research Agent</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Segoe UI", "Microsoft YaHei", sans-serif; background: #f3f4f6; height: 100vh; display: flex; flex-direction: column; }
+  header { background: #1f2937; color: #fff; padding: 14px 24px; }
+  header h1 { font-size: 17px; font-weight: 600; }
+  header p { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+  #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; max-width: 860px; width: 100%; margin: 0 auto; }
+  .msg { max-width: 82%; padding: 10px 14px; border-radius: 10px; line-height: 1.65; font-size: 14px; white-space: pre-wrap; word-break: break-word; }
+  .user { align-self: flex-end; background: #2563eb; color: #fff; border-bottom-right-radius: 2px; }
+  .assistant { align-self: flex-start; background: #fff; border: 1px solid #e5e7eb; border-bottom-left-radius: 2px; }
+  .assistant.error { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+  .assistant mark { background: #fef08a; border-radius: 3px; padding: 0 2px; }
+  .thinking { color: #9ca3af; font-style: italic; }
+  details.trace { align-self: flex-start; max-width: 82%; font-size: 12px; color: #6b7280; }
+  details.trace summary { cursor: pointer; user-select: none; }
+  details.trace pre { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 12px; margin-top: 4px; white-space: pre-wrap; word-break: break-all; }
+  #inputbar { background: #fff; border-top: 1px solid #e5e7eb; padding: 12px 20px; }
+  #inputbar .row { max-width: 860px; margin: 0 auto; display: flex; gap: 10px; }
+  #q { flex: 1; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; outline: none; }
+  #q:focus { border-color: #2563eb; }
+  #send { padding: 10px 22px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; }
+  #send:disabled { background: #93c5fd; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PDF Research Agent</h1>
+  <p>用自然语言检索和阅读本地 PDF · MCP + ReAct</p>
+</header>
+<div id="chat"></div>
+<div id="inputbar">
+  <div class="row">
+    <input id="q" placeholder="例如：哪几篇 PDF 讲了网络流量分析？" autocomplete="off">
+    <button id="send">发送</button>
+  </div>
+</div>
+<script>
+const chat = document.getElementById('chat');
+const q = document.getElementById('q');
+const send = document.getElementById('send');
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function addMsg(text, cls) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + cls;
+  // 高亮 [文件名, p.页码] 引用
+  div.innerHTML = escapeHtml(text).replace(/\[([^\[\]]+?,\s*p\.\d+)\]/g, '<mark>[$1]</mark>');
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+function addTrace(trace) {
+  if (!trace || !trace.length) return;
+  const d = document.createElement('details');
+  d.className = 'trace';
+  const steps = trace.map((t, i) => `${i + 1}. ${t.name}(${t.arguments})`).join('\n');
+  d.innerHTML = `<summary>查看工具调用轨迹（${trace.length} 步）</summary><pre>${escapeHtml(steps)}</pre>`;
+  chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight;
+}
+async function ask() {
+  const question = q.value.trim();
+  if (!question) return;
+  addMsg(question, 'user');
+  q.value = '';
+  send.disabled = true;
+  const thinking = addMsg('思考中…', 'assistant thinking');
+  try {
+    const resp = await fetch('/ask', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({question})
+    });
+    const data = await resp.json();
+    thinking.remove();
+    if (!resp.ok) {
+      addMsg(data.error || ('请求失败：' + resp.status), 'assistant error');
+    } else {
+      addMsg(data.answer || '(空回答)', 'assistant');
+      addTrace(data.trace);
+    }
+  } catch (e) {
+    thinking.remove();
+    addMsg('网络错误：' + e.message, 'assistant error');
+  }
+  send.disabled = false;
+  q.focus();
+}
+send.addEventListener('click', ask);
+q.addEventListener('keydown', e => { if (e.key === 'Enter') ask(); });
+q.focus();
+</script>
+</body>
+</html>

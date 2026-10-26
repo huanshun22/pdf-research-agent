@@ -1,0 +1,1543 @@
+Revolutionizing Cyber Threat Detection with Large
+Language Models: A privacy-preserving
+BERT-based Lightweight Model for IoT/IIoT
+Devices
+Mohamed Amine Ferrag, Mthandazo Ndhlovu, Norbert Tihanyi, Lucas C. Cordeiro,
+Merouane Debbah, Thierry Lestable and Narinderjit Singh Thandi
+Technology Innovation Institute, 9639 Masdar City, Abu Dhabi, UAE
+Email: firstname.lastname@tii.ae
+Abstract—The field of Natural Language Processing (NLP)
+is currently undergoing a revolutionary transformation driven
+by the power of pre-trained Large Language Models (LLMs)
+based on groundbreaking Transformer architectures. As the
+frequency and diversity of cybersecurity attacks continue to rise,
+the importance of incident detection has significantly increased.
+IoT devices are expanding rapidly, resulting in a growing need
+for efficient techniques to autonomously identify network-based
+attacks in IoT networks with both high precision and minimal
+computational requirements. This paper presents SecurityBERT,
+a novel architecture that leverages the Bidirectional Encoder Rep-
+resentations from Transformers (BERT) model for cyber threat
+detection in IoT networks. During the training of SecurityBERT,
+we incorporated a novel privacy-preserving encoding technique
+called Privacy-Preserving Fixed-Length Encoding (PPFLE). We
+effectively represented network traffic data in a structured format
+by combining PPFLE with the Byte-level Byte-Pair Encoder
+(BBPE) Tokenizer. Our research demonstrates that Security-
+BERT outperforms traditional Machine Learning (ML) and Deep
+Learning (DL) methods, such as Convolutional Neural Networks
+(CNNs) or Recurrent Neural Networks (RNNs), in cyber threat
+detection. Employing the Edge-IIoTset cybersecurity dataset, our
+experimental analysis shows that SecurityBERT achieved an
+impressive 98.2% overall accuracy in identifying fourteen distinct
+attack types, surpassing previous records set by hybrid solutions
+such as GAN-Transformer-based architectures and CNN-LSTM
+models. With an inference time of less than 0.15 seconds on
+an average CPU and a compact model size of just 16.7MB,
+SecurityBERT is ideally suited for real-life traffic analysis and
+a suitable choice for deployment on resource-constrained IoT
+devices1.
+Index Terms—Security, Attacks Detection, Generative AI, Fal-
+conLLM, BERT, Large Language Models.
+I. I NTRODUCTION
+According to a Statista report [1], it is projected that the
+global number of Internet of Things (IoT) connected devices
+could potentially reach 30 billion by the year 2030. With the
+rise in the number of IoT devices, there is also a growing
+incidence of cyber threats, posing substantial challenges to the
+security of diverse systems and networks [2]. As adversaries
+consistently evolve their tactics, the need for advanced and
+effective detection mechanisms becomes paramount. Manual
+detection methods and conventional approaches are becoming
+1This paper has been accepted for publication in IEEE Access:
+http://dx.doi.org/10.1109/ACCESS.2024.3363469
+outdated, and various Machine Learning (ML) techniques have
+emerged, combating these new threats more effectively. In this
+context, Natural Language Processing (NLP) techniques are
+gaining attention as a promising approach for cyber threat
+detection [3]. Among these techniques, the Bidirectional En-
+coder Representations from Transformers (BERT) model [4],
+a pre-trained transformer-based language model, has achieved
+remarkable success in several NLP applications. By exploiting
+BERT’s contextual understanding, security researchers have
+found unique techniques to handle diverse cybersecurity con-
+cerns [5]. Researchers have recently been exploring using
+BERT and pre-trained language models in a wide range of
+cybersecurity applications, including malware detection in
+Android applications, identification of spam emails, intrusion
+detection in automotive systems, and anomaly detection in
+system logs [6]–[8]. Network-based traffic, such as port scans
+and packet floods, primarily consists of numerical data rather
+than textual information. This characteristic poses a challenge
+when attempting to leverage models like BERT to understand
+the semantic relationships between various types of network
+packets. While employing complex Large Language Models
+(LLMs) with billions of parameters can improve threat detec-
+tion accuracy, their extensive computational needs render them
+impractical for implementation in embedded devices.
+We present SecurityBERT, a novel lightweight privacy-
+preserving architecture for cyber threat detection in IoT net-
+works. By employing a dedicated encoding technique designed
+for this specific purpose, we surpassed the performance of all
+existing ML algorithms and models in cyber threat detection.
+During the design of SecurityBERT, we had three primary
+goals in mind:
+• To create an exceptionally compact model capable of exe-
+cuting rapid inferences without causing noticeable delays.
+This design choice enables real-time traffic analysis and
+facilitates embedding the model in IoT devices;
+• To maintain the confidentiality of the extracted network
+data, ensuring that classification can be performed on
+untrusted servers;
+• To surpass the accuracy levels of previous ML models in
+this field.
+Achieving superior accuracy compared to existing hybrid
+arXiv:2306.14263v2  [cs.CR]  8 Feb 2024
+
+solutions has proven a significant challenge in our architectural
+design. Striking the right balance is crucial. If the architecture
+becomes overly complex, it may become impractical for real-
+life traffic analysis. Conversely, if the model is overly sim-
+plistic, it may not provide the necessary accuracy for effective
+multi-classification, thus hindering its overall performance.
+Our original contributions are as follows:
+• Our research introduces a novel privacy-preserving en-
+coding approach called Privacy-Preserving Fixed-Length
+Encoding (PPFLE). By combining PPFLE with the Byte-
+level Byte-Pair Encoder (BBPE) tokenizer, we can effec-
+tively represent network traffic data in a structured man-
+ner. By implementing this technique, we have achieved
+significant performance improvements compared to using
+text data with varying sizes;
+• We have designed a 15-layer BERT-based architecture
+with only 11 million parameters for multi-category clas-
+sification. We trained the model on PPFLE encoded data,
+which we refer to as SecurityBERT;
+• We evaluated the efficiency of our proposed approach
+using the Edge-IIoTset cyber security dataset [9]. Various
+ML techniques have recently been tested on this dataset,
+providing a solid foundation for fair comparison. Accord-
+ing to our experimental analysis, our method effectively
+identifies fourteen distinct types of attacks on an average
+CPU in less than 0.3 seconds, achieving an overall
+accuracy of 98.2%. To the best of our knowledge, this
+achievement showcases the highest accuracy ever attained
+among all ML algorithms, outperforming both the Convo-
+lutional Neural Network (CNN) and Transformer models.
+This paper is organized as follows: Section II presents
+an exploration of the related work. Subsequently, Section III
+outlines the significant steps in developing SecurityBERT.
+In Section IV, we evaluate the performance of the proposed
+model. Lastly, we conclude our research and provide insight
+into potential future research directions of interest in Sec-
+tion V.
+II. R ELATED WORK
+As various researchers have already demonstrated, the
+BERT model proves to be an exceptional starting point for
+identifying cybersecurity threats. BERT has been utilized in
+various fields, from detecting log anomalies to identifying
+malicious web requests.
+A noteworthy study by Alkhatib et al. [10] demonstrated
+the feasibility of using BERT for learning the sequence of
+arbitration identifiers (IDs) in a Controller Area Network
+(CAN) via a “masked language model” unsupervised training
+objective. They proposed the CAN-BERT transformer model
+for anomaly detection in current automotive systems and
+showed that the BERT model outperforms its predecessors
+regarding accuracy and F1-score. Rahali et al. [6] introduced
+MalBERT, a tool that conducts static analysis on the source
+code of Android applications. They used BERT to comprehend
+the contextual relationships of code words and classify them
+into representative malware categories. Their results further
+underscored the high performance of transformer-based mod-
+els in malicious software detection.
+Chen et al. [8] introduced BERT-Log, an anomaly detection
+and fault diagnosis approach in large-scale computer systems
+that treat system logs as natural language sequences. They
+leveraged a pre-trained BERT model to learn the semantic
+representation of normal and anomalous logs, fine-tuning
+the model with a fully connected neural network to detect
+abnormalities. Seyyar et al. [7] proposed a model for detecting
+anomalous HTTP requests in web applications, employing
+Deep Learning (DL) techniques and BERT. Aghaei et al. [11]
+presented SecureBERT2, a language model tailored explicitly
+for cybersecurity tasks, focusing on Cyber Threat Intelligence
+(CTI) and automation. The SecureBERT model offers a prac-
+tical way of transforming natural language CTI into machine-
+readable formats, thereby minimizing the necessity for labor-
+intensive manual analysis. The authors devised a unique to-
+kenizer and a method for adjusting pre-trained weights to
+ensure that SecureBERT understands general English and
+cybersecurity-related text. However, SecureBERT is not de-
+signed to process network-based cyber threat attacks.
+CyBERT, introduced by Ranade et al. [12], is a custom
+version of BERT designed specifically for cybersecurity ap-
+plications. This model has been fine-tuned using a vast corpus
+of cybersecurity data to enhance its ability to process intricate
+information concerning threats, attacks, and vulnerabilities. K.
+Yu et al. [13] explored a deep-learning-based approach for
+detecting advanced persistent threats (APTs) in the Industrial
+Internet of Things (IIoT), using the BERT model to address
+the challenges of long attack sequences. Their experimental
+results demonstrate the method’s effectiveness, yielding high
+accuracy and a low false alarm rate in APT detection. B.
+Breve et al. [14] proposed using NLP techniques, specifically a
+BERT-based model, to detect potentially harmful automation
+rules in trigger-action IoT platforms that could breach user
+security or privacy. Their evaluation on the If-This-Then-That
+platform with over 76,000 rules demonstrated high accuracy,
+significantly outperforming traditional information flow anal-
+ysis methods. Recently Z. Wang et al. [15] developed BERT-
+of-Theseus, Vision Transformer, and PoolFormer (BT-TPF),
+an IoT intrusion detection model tailored for resource-limited
+IoT environments, using a knowledge-distillation approach.
+The model employs a Siamese network for feature reduction
+and a Vision Transformer to train a compact Poolformer
+model, achieving a significant parameter reduction while main-
+taining high accuracy. The aforementioned studies leverage
+pre-trained BERT models and customize them to meet their
+unique security needs by fine-tuning or using them as fea-
+ture generators. These models benefit from the textual form
+and sequential nature of their security-related data, including
+sources such as code, emails, and log sequences. These studies
+effectively utilize BERT’s ability to comprehend contextual
+relationships within sequences to carry out precise detection
+and classification tasks.
+In cyber threat detection, it is vital to compare different
+research efforts. In real-world cyber threat detection scenarios,
+support is crucial for extracting features from network traffic,
+often relying on PCAP files. In addition to analyzing real
+2While the names may sound similar, it is important to note that Secure-
+BERT is separate from our recently introduced SecurityBERT.
+
+packet data and detecting cyber threats on networks, it is
+important to consider privacy in training data, especially since
+IoT devices and network data may contain sensitive informa-
+tion. Given the uniqueness of each network infrastructure and
+the need for high accuracy through fine-tuning or new training,
+sharing actual network traffic data for training purposes can
+raise privacy concerns. SecurityBERT has been developed
+as a pioneering, lightweight, privacy-preserving architecture
+specifically designed with this consideration in mind. TABLE I
+provides a comparison of various recent works on cyber threat
+detection in terms of four key parameters:
+• D = Detect: Network-based Cyber Threat Detection
+• L = LLM: Utilization of LLMs
+• N = Network PCAP: Packet data analysis of a traffic
+• P = Privacy: Privacy-preserving training data
+TABLE I
+COMPARISON WITH RECENT WORKS ON CYBER THREAT DETECTION
+Frameworks Year D L N P
+Alkhatib et al. [10] 2022 ✗ ✓ ✗ ✗
+Rahali et al. [6] 2022 ✗ ✓ ✗ ✗
+Aghaei et al. [11] 2022 ✗ ✓ ✗ ✗
+Thapa et al. [4] 2022 ✗ ✓ ✗ ✗
+Hamouda et al. [16] 2022 ✓ ✗ ✓ ✗
+Friha et al. [17] 2022 ✓ ✗ ✓ ✗
+Chen et al. [8] 2022 ✗ ✓ ✗ ✗
+Seyyar et al. [7] 2022 ✗ ✓ ✗ ✗
+Selvaraja et al. [18] 2023 ✓ ✗ ✓ ✗
+B. Breve et al. [14] 2023 ✗ ✓ ✗ ✗
+Chen et al. [19] 2023 ✗ ✓ ✗ ✗
+Douiba et al. [20] 2023 ✓ ✗ ✓ ✗
+Jahangir et al. [21] 2023 ✓ ✗ ✓ ✗
+Hu et al. [22] 2023 ✓ ✗ ✓ ✗
+K. Yu et al. [13] 2023 ✓ ✓ ✗ ✗
+Hu et al. [22] 2023 ✓ ✗ ✓ ✗
+Friha et al. [23] 2023 ✓ ✗ ✓ ✗
+Chakraborty et al. [24] 2023 ✓ ✗ ✓ ✗
+Wang et al. [25] 2023 ✓ ✗ ✓ ✗
+Liu et al. [26] 2023 ✓ ✗ ✓ ✗
+Aouedi et al. [27] 2023 ✓ ✗ ✓ ✗
+Z. Wang et al. [15] 2023 ✓ ✓ ✓ ✗
+SecurityBERT 2023 ✓ ✓ ✓ ✓
+✓: Supported, ✗: Not Supported.
+The majority of the research conducted in 2022, including
+[6], [11], and [10], integrated LLMs, but they did not support
+detection, nor did they utilize packet data. However, contrary
+to the norm, Hamouda et al. [16] (2022) and Friha et al. [17]
+(2022) demonstrated support for cyber threat detection and uti-
+lized packet data but did not rely on the capabilities of LLMs.
+Works from 2023, such as [18], [20], and [25], emphasize
+more cyber threat detection and the use of packet data, but
+they largely lack in the application of LLMs.
+III. S ECURITY BERT ARCHITECTURE DESIGN
+FIGURE 1 visually presents the comprehensive workflow of
+the model, encompassing all relevant steps from dataset prepa-
+ration to classification. Each of these steps will be extensively
+covered in this section. Developing a BERT model from the
+ground up for network-based cyber threat detection demands
+a thorough and intricate approach. Below is a comprehensive
+outline detailing the main steps in the process:
+STEPS 1 Main steps of building SecurityBERT
+1: Dataset Utilization
+2: Feature Extraction
+3: Privacy-Preserving Fixed-Length Encoding (PPFLE)
+4: Byte-level BPE (BBPE) Tokenizer
+5: SecurityBERT Embedding
+6: Contextual Representation
+7: Training SecurityBERT
+• Text Normalization
+• Text Tokenization
+• Frequency Filtering
+• V ocabulary Creation
+• Special Token Addition
+• Tokenizer Training
+8: Fine-tuning with Softmax activation function
+A. Dataset Utilization (Edge-IIoTset Dataset)
+Generating our dataset through real-life traffic analysis
+would be time-consuming, and there’s the risk of specific
+attacks not being adequately simulated or missing from our
+dataset. Hence, acquiring and utilizing realistic datasets for
+our research is crucial.
+Cybersecurity and network security data can be gathered
+from various online sources using open-source databases and
+repositories. Notable examples include the Common Vul-
+nerabilities and Exposures (CVE) database, the Open Web
+Application Security Project (OW ASP), and numerous others
+for network security [28]. The primary challenge presented
+by these sources is their heavy reliance on artificial scenarios,
+which results in a deficiency of authentic data. Training
+a model exclusively on such data can potentially lead to
+unrealistic outcomes. Furthermore, most of these databases
+do not include packet network data, which poses a chal-
+lenge in simulating realistic scenarios. Our primary aim is
+to opt for a dataset that tackles this constraint by strongly
+emphasizing genuine network data. Furthermore, we intend to
+ensure maximum diversity within this dataset, encompassing
+a comprehensive range of attack types, including ransomware,
+XSS, SQL injection, DoS, and other widely recognized attack
+categories. This diversified dataset’s rationale is to assess our
+newly proposed model’s classification capabilities comprehen-
+sively. In 2022, Ferrag et al. introduced Edge-IIoTset [9],
+a new and extensive cybersecurity dataset specifically de-
+signed for IoT and IIoT applications. This dataset serves as a
+valuable resource for ML-based intrusion detection systems.
+The Edge-IIoTset dataset includes diverse devices, sensors,
+protocols, and cloud/edge configurations, rendering it highly
+representative of real-world scenarios and aligning perfectly
+with our research objectives. This dataset contains fifteen ( 15)
+attacks related to the Internet of Things (IoT) and Industrial
+IoT (IIoT) connectivity protocols, categorized into five threats:
+DoS/DDoS attacks, Information gathering, Man-in-the-middle
+(MITM), Injection attacks, and Malware attacks, which can
+be seen in Figure 2. The DoS/DDoS attack category encom-
+passes TCP SYN Flood, UDP flood, HTTP flood, and ICMP
+flood attacks. The Information Gathering category includes
+
+dbaf efb ejf447
+Tokenized Trafic Data
+ByteLevelBPETokenizer
+Token1Token2Token3Token4
+Text Data Input (PPFLE output)
+Textual Representation
+using PPFLE
+Original Network Traffic  data
+1) Dataset Preparation 3) Model Training
+BERT Encoder
+Contextuel Representation
+BERT Embedding
+Feature extraction
+2) Dataset Tokenization        4) Classification
+A Pre-trained Language Model (SecurityBERT)
+Features
+ Category
+1AE4Fd067EC23AB
+ Ransomware
+AEC89021D56FA231
+ Normal
+DDoS UDP
+DDoS ICMP
+DDoS TCP
+Normal
+Uploading
+Password
+Backdoor
+Port Scan
+XSS
+Ransomware
+DDoS HTTP
+MITM
+Fingerprint
+SQL injection
+Vuln Scan
+Softmax Classifier
+Fig. 1. High-level workflow of our SecurityBERT model.
+attacks like port scanning, operating system fingerprinting, and
+vulnerability scanning. MITM attacks include tactics such as
+DNS Spoofing and ARP Spoofing. Injection attacks include
+Cross-Site Scripting (XSS), SQL injection, and file-uploading
+attacks. Lastly, the Malware category covers backdoors, pass-
+word crackers, and ransomware attacks.
+Edge-IIoTset Dataset
+DoS/DDoS
+ Information
+Gathering
+ Malware Attacks
+ Man-in-the-middle
+(MITM)
+ Injection Attacks
+TCP-SYN flood
+UDP flood
+HTTP flood
+ICMP flood
+Port Scanning
+OS Fingerprinting
+Vulnerability
+Scanning
+Backdoor attack
+Password
+cracking
+Ransomware
+attack
+DNS Spoofing
+ARP Spoofing
+XSS
+SQL Injection
+Uploading attack
+Fig. 2. Categories of the Edge-IIoTset dataset
+B. Features extraction
+Given a PCAP file with a network traffic log, we extract
+relevant features from a specific time window and return them
+in a structured format suitable for analysis. Specifically, we
+identify and separate each network flow in the PCAP file. For
+each flow identified, we extract a set of predefined features.
+Then, we organize the extracted features into a CSV file format
+for analysis. We removed null features from the Edge-IIoTset
+dataset during our initial exploration, identifying 61 distinct
+and diverse features. These features are sufficiently various to
+distinguish the distinctive patterns of network attacks exclu-
+sively.
+The Edge-IIoTset dataset comprises features gathered from
+various sources, including network traffic, logs, system re-
+sources, and alerts. To better understand these features, the
+initial 15 can be seen in TABLE II. For a comprehensive view
+of all 61 features, please see Table 7 in [9].
+N° Name Prot. Layer Type
+1 frame.time Frame Date and time
+2 ip.src_host IP Character string
+3 ip.dst_host IP Character string
+4 arp.dst.proto_ipv4 ARP IPv4 address
+5 arp.opcode ARP Unsigned integer
+6 arp.hw.size ARP Unsigned integer
+7 arp.src.proto_ipv4 ARP IPv4 address
+8 icmp.checksum ICMP Unsigned integer
+9 icmp.seq_le ICMP Unsigned integer
+10 icmp.transmit_timestamp ICMP Unsigned integer
+11 icmp.unused ICMP Sequence of bytes
+12 http.file_data HTTP Character string
+13 http.content_length HTTP Unsigned integer
+14 http.request.uri.query HTTP Character string
+15 http.request.method HTTP Character string
+. · · · · · · · · ·
+. · · · · · · · · ·
+61 mbtcp.unit_id Modbus/TCP Unsigned Integer
+TABLE II
+THE FIRST 15 FEATURES GATHERED FROM PCAP FILES .
+Numerous studies have already shown that these 61 distinct
+features are sufficient to detect specific network-based cyberat-
+tacks. This dataset, therefore, serves as an optimal foundation
+for comparing various ML algorithms [29]. After discussing
+the exact architectural design, the evaluation and comparison
+of SecurityBERT with other research will be detailed in
+Section IV.
+C. Privacy-Preserving Fixed-Length Encoding
+A pivotal aspect of the design involves representing the
+unstructured network data in a manner that allows BERT
+to comprehend the context and relationships between various
+features. BERT is designed to understand English proficiently
+but may not be the most suitable ML model for comprehending
+relationships between numbers. In our case, many features
+are numerical values, i.e., unsigned integers, not strings (as
+
+illustrated in TABLE II), making it difficult to discern their
+interrelationships using natural language processing methods.
+To leverage the power of BERT natural language under-
+standing, we process the dataset, comprising numerical and
+categorical values, and transform it into textual representation.
+Specifically, we added context to the data by incorporating
+column names and concatenating them with their respective
+values. Then, each new value is hashed and combined with
+other hashed values within the same instance, resulting in the
+generation of a sequence. By employing this technique, we
+have developed a new language comprehensible to BERT and
+introduced privacy into the training data through cryptographic
+hash functions. We call this novel textual representation tech-
+nique as Privacy-Preserving Fixed-Length Encoding (PPFLE).
+Significant similarities in log files, TCP scans, and memory
+dumps may lead to misinterpretation and incorrect classifica-
+tion of various attacks. Employing a hash function allows for
+handling even minor deviations in the data, effectively repre-
+senting them as distinct data points for ML. Moreover, specific
+attacks, like UDP scans and others that are challenging to
+represent as plain text, can be better understood by the model
+when they are converted into hashed values. Put simply, we
+have developed a new linguistic format that the BERT model
+comprehends much more effectively than mere numerical data,
+and it aligns more closely with the natural English language
+for which the BERT model is specifically tailored.
+Through this method, we fashioned a representation of the
+numbers that closely align with natural language, allowing the
+model to attain enhanced classification accuracy, as detailed in
+Section IV-A. Correctly converting network data and applying
+PPFLE can achieve higher accuracy than using the original
+pre-trained BERT model architecture.
+PPFLE description: The objectives of PPFLE are twofold.
+On the one hand, it is designed to convert unstructured
+network data into a structured format that better mimics the
+natural English language, aligning well with the BERT model’s
+specialization. On the other hand, it focuses on maintaining
+privacy by ensuring that only encoded data is observed,
+thereby hiding sensitive information in the network data while
+preserving key classification features.
+Let us define a matrix denoted by M with i rows and j
+columns. Here, M[i, j] represents the matrix element at the
+intersection of the ith row and jth column in M. We denote
+the ith row of M by ri = M[i, :]. In M, the first row contains
+the column names, which serve as labels or identifiers for
+each column. We denote these column names as cj, where j
+represents the column index, i.e., M[1, j] =cj.
+Let us define s(i, j) as a concatenation operation where the
+column name cj, a dollar sign, and the value of the jth column
+in the (i + 1)th row ri are concatenated into a single string,
+excluding the first row which contains the column names, i.e.,
+s(i, j) =cj ∥ "$" ∥ M[i + 1, j] (1)
+Next, define H(x) as a hashing operation on a string x and
+let L is a list where each element is separated by a space, i.e.,
+L = {l1 l2 l3 . . . lk}.
+Then, the textual representation of each row i in the matrix
+M can be expressed as follows:
+L ← L ∪ {H(s(i, n))} ∀(1 ≤ n ≤ j) (2)
+Repeating this procedure for each row in M, we obtain a
+new matrix called DataList denoted as DL. In DL, each row
+represents an L list, i.e.;
+DL =
+
+
+L1 = [H(s(1, 1)) H(s(1, 2)) . . . H(s(1, j))]
+L2 = [H(s(2, 1)) H(s(2, 2)) . . . H(s(2, j))]
+...
+Li = [H(s(i, 1)) H(s(i, 2)) . . . H(s(i, j))]
+
+
+TEST ID ENC
+51 6 72
+13 9 8
+H(TEST$51) H(ID$6) H(ENC$72)
+H(TEST$13) H(ID$9) H(ENC$8)
+=
+Fig. 3. Creating DataList example.
+In other words, the DataList DL lists where each inner list
+contains the hashed, concatenated column values for each row
+in the matrix M. The M matrix in ML is commonly called a
+DataFrame. FIGURE 3 showcases a simple DataList creation
+example. The pseudocode of the PPFLE algorithm can be seen
+in Algorithm 1.
+Algorithm 1 Privacy-Preserving Fixed-Length Encoding
+Require: Matrix M with i rows and j columns
+1: procedure PPFLE( M)
+2: DL ←[] ▷ Initialize DL to be empty
+3: for m = 1to i do ▷ Iterate through rows in M
+4: L = [] ▷ Initialize L to be an empty list
+5: for n = 1to j do ▷ Column iteration
+6: L ← H(s(m, n)) ▷ Append H(x) to L
+7: end for
+8: DL ←L ▷ Append L to DL
+9: end for
+10: return DL
+11: end procedure
+The PPFLE algorithm, despite its simplicity, effectively
+translates unstructured data into a fixed-length format. This
+representation mirrors the characteristics of natural languages,
+offering considerable advantages when utilized by ML algo-
+rithms.
+
+Removed features for PPFLE encoding: A natural ques-
+tion arises as to whether all 61 features are suitable for
+PPFLE encoding. For instance, features like "ip.src_host" and
+"ip.dst_host" contain IP addresses, which can lead to over-
+fitting, especially if they have unique identifiers or particular
+details that don’t generalize well in different network. Sim-
+ilarly, hashing timestamps with millisecond precision could
+introduce confusion during training, so it may be necessary
+to remove such features if one intends to apply PPFLE
+encoding. For this reason, several features related to network
+traffic and packet captures were excluded. High-cardinality
+features such as "http.request.full_uri" can be challenging
+to encode effectively and might not offer generalizable pat-
+terns. Features with potential redundancy, like the presence of
+both "ip.src_host" and "arp.src.proto_ipv4", could introduce
+multicollinearity, affecting model stability. Features such as
+"frame.time", indicating packet capture timestamps, might not
+directly relate to the predictive modeling task. Other columns
+like "tcp.payload" and "http.file_data" represent raw data pay-
+loads, which, without extensive preprocessing, could introduce
+noise rather than clarity. Removing these columns streamlines
+the dataset, enhancing computational efficiency and ensuring
+the model focuses on the most relevant and generalizable
+patterns while maintaining user privacy.
+D. Byte-level BPE (BBPE) Tokenizer
+Tokenization is performed on the PPFLE-encoded data.
+This ensures that no sensitive information is fed to the
+model during training. A natural question arises: Doesn’t the
+PPFLE compromise the semantics of network data, rendering
+tokenization unfeasible? By applying PPFLE encoding, we
+convert numerical values to align with the characteristics
+of natural language more closely. Each feature is encoded
+independently, allowing the adjacent hashed values to provide
+the model with sufficient information about the type of attacks
+it encounters. Hashing all 61 features together, however, would
+destroy the semantics of the attacks.
+Figure 4 demonstrates the functionality of the PPFLE algo-
+rithm, including tokenization.
+For instance, using PPFLE to encode a feature for an
+attack on port 443 with the GET method would appear as:
+H(TCP.DSTPORT$443) H(HTTP.METHOD$GET) . Con-
+versely, a DNS poisoning attack would have a distinct rep-
+resentation, lacking any HTTP.METHOD and thus consis-
+tently hashed as H(HTTP.METHOD$0). It has turned out
+during our experimental analysis that these 61 features are
+highly effective in representing different types of network
+attacks with great accuracy. Furthermore, the model can rec-
+ognize all attack patterns based on these features, even when
+hashed. For the data encoded with PPFLE, we employed
+the ByteLevelBPETokenizer from the Hugging Face
+Transformers library. This tokenizer, initially utilized for GPT-
+2 [30], breaks down text into subword units for tokenization.
+It is based on the Byte-Pair Encoding (BPE) algorithm [31],
+a data compression technique that replaces the most frequent
+pair of consecutive bytes in a sequence with a single, unused
+byte. The ByteLevelBPETokenizer is particularly useful
+for handling out-of-vocabulary (OOV) words, which are not
+HTTP.METHOD TCP.ACK TCP.ACK_RAW TCP.DSTPORT
+GET 1  2649986338 80
+POST 13 1815315521 443
+H(HTTP.METHOD$GET) H(TCP.ACK$1) 
+H(TCP.ACK_RAW$2649986338) H(TCP.DSTPORT$80) 
+ 
+H(HTTP.METHOD$POST) H(TCP.ACK$13) 
+H(TCP.ACK_RAW$1815315521) H(TCP.DSTPORT$443) 
+ 
+=
+CSV=
+PPFLE algorithm
+D75B108CD2FDF2CD59A1A5DD694F3B85
+C4E0A295930F73AD87AB30DB4C2F202B
+43C771A79AD860AA0157E9FAEE32D093
+735CEA3C563AF202F26320A73BD54771
+ 
+ 
+4EE85AA84271C569937A6624BBD7E9AF 
+A136C4F73BD9437F91217F4BA7893ED6
+ 310A0ED9E67E7CE83B7BB04FCFF5C75B
+250752D7E3AB1336E717F0AE58851A26 
+ 
+40 318 148438 39 40
+24 41 65441 37 37
+3231150 39 1085 371059
+... ... ...... ... ...
+...... 394 612 37737
+22 42 40 42 22 39
+... ... ... ... ... ...
+... ... 38 40 2089 323
+Tokenization on PPFLE encoded data
+Fig. 4. PPFLE encoding and BBPE tokenization example
+present in the tokenizer’s vocabulary of human language [32].
+By breaking down our language presentation of network traffic
+data into smaller subwords likely present in the tokenizer’s
+vocabulary as a sequence of bytes, we can efficiently process
+traffic data by leveraging the power of BERT.
+During the training of the tokenizer, a vocabulary
+size of 5000 was employed, along with a set of spe-
+cific tokens, including ["<s>", "<pad>", "</s>",
+"<unk>", "<mask>"] . The tokenizer’s training involved
+utilizing the file name, setting the vocabulary size, establishing
+a minimum frequency of 2, and incorporating the list of special
+tokens. For a visual representation of the various tokens within
+the PPFLE encoded data, refer to FIGURE 4. Understanding
+
+the semantics of these tokens functions similarly to interpret-
+ing a typical sentence. The hash output for a specific attack
+remains constant; thus, if these subword hexadecimal values
+appear in a particular sequence, BERT can recognize that this
+unique order corresponds to a hash output and categorize it as
+a specific attack.
+E. SecurityBERT embedding
+Algorithm 2 showcases the SecurityBERT embedding.
+The algorithm starts by setting the chunk_size to 5000.
+Algorithm 2 Encode Evaluation Data Sequences
+1: chunk_size ← 5000
+2: num_chunks ← ⌈len(eval_data) / chunk_size⌉
+3: input_ids_eval ← [] ▷ Initialize as an empty list
+4: attention_masks_eval ← [] ▷ Initialize as an empty list
+5: for i = 0 to num_chunks do
+6: start_idx ← i × chunk_size
+7: end_idx ← (i + 1)× chunk_size
+8: chunk ← eval_data[start_idx : end_idx]
+9: encoded_seqs ← encode(chunk)
+10: iic, amc← UNPACK(encoded_seqs)
+11: append icc to input_ids_eval
+12: append amc to attention_masks_eval
+13: end for
+14: concatenate the input IDs and attention masks as
+input_ids_eval, attention_masks_eval
+It then calculates the number of chunks, num_chunks,
+by dividing the length of the eval_data by chunk_size,
+and rounding up to the nearest integer. Two empty lists,
+input_ids_eval and attention_masks_eval, are initialized
+to hold the encoded input IDs and attention masks, respec-
+tively. The algorithm then enters a loop, iterating from 0 to
+num_chunks. This loop determines the start and end indices
+for each chunk of the eval_data. It retrieves a chunk of data
+using these indices and encodes each sequence in the chunk,
+storing the result in encoded_seqs. This encoded data is
+then unpacked into two components: input_ids_chunk
+and attention_masks_chunk, denoted by iic and amc.
+These components are appended to the input_ids_eval
+and attention_masks_eval lists. Once all chunks
+have been processed, the algorithm concatenates all the in-
+put IDs and attention masks in input_ids_eval and
+attention_masks_eval respectively, along dimension
+0, thereby creating a complete set of input IDs and at-
+tention masks for the evaluation data. Here, we note that
+the input_ids_eval and attention_masks_eval
+are important components of the input to transformer-based
+models. The input_ids_eval is a sequence of integers
+representing the input data after being tokenized. Each integer
+maps to a token in the model’s vocabulary.
+The attention_masks_eval informs the model about
+which tokens should be attended to and which should not. In
+many cases, sequences are padded with special tokens to make
+all sequences the same length for batch processing. Attention
+masks prevent the model from attending to these padding
+tokens. Typically, an attention mask has the same length as
+the corresponding input_ids sequence and contains a 1
+for real tokens and a 0 for padding tokens.
+F . Contextual representation
+We adopted the BERT architecture, which leverages trans-
+formers for textual representation and cyber threat classi-
+fication. Specifically, we pre-trained our SecurityBERT
+using our newly created tokenized dataset. In this process,
+SecurityBERT takes each token from the tokenized text
+and represents it as an embedding vector, denoted as X ∈ Rd,
+where d represents the dimensionality of the embedding space.
+Then SecurityBERT utilizes a transformer-based architec-
+ture consisting of multiple encoder layers. Each encoder layer
+comprises multi-head self-attention mechanisms and position-
+wise feed-forward neural networks. The self-attention mech-
+anism [33] allows the model to capture dependencies and
+relationships between words within a sentence, thus facilitating
+contextual understanding. The self-attention mechanism in
+BERT can be mathematically expressed as follows:
+Attention(Q, K, V) = σ
+ QK T
+√dk
+
+V (3)
+, where σ is the softmax function, Q, K, and V are the
+query, key, and value matrices, respectively, dk represents the
+dimensionality of the keys vector, and T denotes the transpose
+operation. Through self-attention, BERT encodes contextual
+representations by capturing the importance of different words
+within a sentence based on their semantic and syntactic rela-
+tionships. The resulting contextual embeddings are obtained
+through feed-forward operations and layer normalization.
+G. Training SecurityBERT
+The training of SecurityBERT involves several crucial
+steps, each carefully calibrated to ensure optimal perfor-
+mance in security-centric tasks. These steps include data
+collection and preprocessing, tokenizer training, model con-
+figuration, and the training process itself. SecurityBERT
+works with PPFLE-encoded data, simplifying certain steps
+in the tokenizer training process and requiring alternative
+approaches for other steps. Here, we detail the distinct aspects
+of SecurityBERT’s training process.
+1) Text Normalization:
+n(D) ={n(d)|d ∈ D} (4)
+In this function, n(D) represents the normalization process
+applied to each document d in the set of all documents D.
+Text normalization typically involves converting all text to
+lowercase, removing punctuation, and sometimes even stem-
+ming or lemmatizing words (reducing them to their root form).
+This process is part of the original BERT architecture; how-
+ever, when working with PPFLE-encoded data, this element
+becomes unnecessary and does not provide any extra value to
+our architecture.
+2) Tokenization:
+t(d) ={t(w)|w ∈ d, d∈ D} (5)
+The tokenization function t(d) breaks down each document
+d in the set D into its constituent words or tokens w. These
+
+Feature BertBase BertLarge SecurityBERT
+Model Type Pretrained model on English
+language
+Pretrained model on English
+language
+Pretrained model on Net-
+work Data
+Word Embeddings Size 30522 x 768 30522 x 1024 30522 x 256
+Position Embeddings Size 512 x 768 512 x 1024 512 x 256
+Token Type Embeddings Size 2 x 768 2 x 1024 2 x 256
+Number of Layers in Encoder 12 24 4
+Size of Query, Key, Value in At-
+tention
+768 1024 256
+Size of Intermediate Layer in
+Transformer
+3072 4096 1024
+Output Size of Transformer Layer 768 1024 256
+Pooler Output Size 768 1024 256
+Number of Parameters 110M 340M 11M
+Additional Components None (General-purpose
+model)
+None (General-purpose
+model)
+Dropout (for regularization)
+and Classifier (linear layer
+for classification tasks)
+TABLE III
+COMPARISON OF ORIGINAL BERTBASE , BERTLARGE , AND SECURITY BERT
+tokens are the basic units of text that a machine-learning model
+can understand and process.
+3) Frequency Filtering:
+f (D, F) ={w ∈ D|freq(w, D) ≥ F } (6)
+This function f (D, F) defines a High-Pass filter, cutting out
+tokens w that have a frequency of occurrence, freq (w, D) less
+than the minimum frequency F in the set of all documents
+D. This is to remove rare words that might not provide much
+informational value for further processing or model training.
+4) Vocabulary Creation:
+v(D, V) ={w|w ∈ D, rank(w, D) ≤ V } (7)
+Here, the function v(D, V) creates a vocabulary by choosing
+the top V words w from the set of all documents D based on
+their frequency rank rank (w, D). This forms the vocabulary
+that the model will recognize.
+5) Special Token Addition:
+v′ = v ∪ S (8)
+This states that the new vocabulary, v′, is a union of the
+original vocabulary v and the set of special tokens S. These
+special tokens typically include markers for the start and end
+of sentences, unknown words, padding, etc., and are essential
+for certain SecurityBERT operations.
+6) Tokenizer Training:
+Td = map(v′) (9)
+Finally, the function map (v′) trains the tokenizer Td. The
+trained tokenizer now maps future text inputs to the established
+vocabulary v′, effectively turning unstructured text into a form
+that the SecurityBERT can process. The trained tokenizer
+Td can take any text segment from the document ′d′ into a
+series of tokens that SecurityBERT can understand.
+These steps allow us to transform the raw text into a
+numerical representation that SecurityBERT can process
+effectively.
+H. Fine tuning SecurityBERT
+After the pre-training stage, we fine-tuned SecurityBERT
+for the cyber threat detection classification task. We added
+one linear layer followed by a Softmax activation function
+on top of the pre-trained SecurityBERT model, and the
+entire network is fine-tuned using our labeled data. This pro-
+cess enables SecurityBERT to adapt its learned contextual
+representations to the specific threat detection requirements,
+improving performance.
+1) Training setup: The training and fine-tuning were con-
+ducted on an Intel Xenon(R) 2.20 GHz CPU and an Nvidia
+A100 GPU with 40GB of RAM. The training on this specific
+hardware configuration was completed in 1 hour and 47 min-
+utes. The following Section will extensively discuss a compre-
+hensive performance evaluation of our novelSecurityBERT
+model.
+I. Layers of the SecurityBERT model
+Throughout the research, the primary objective was to attain
+exceptional accuracy in data classification while ensuring the
+model’s size remained compact, with a focus on optimizing
+performance. After extensive experiments, the final model
+comprises 15 layers, specifically engineered to accurately
+comprehend PPFLE data while mitigating overfitting issues
+by incorporating suitable dropout layers. The comprehensive
+structure of the 15-layered SecurityBERT is illustrated in
+FIGURE 5. In the architectural design of SecurityBERT,
+we utilized just 4 Encoder Layers and modified the original
+parameters to suit our problem better. Additionally, we intro-
+duced a new layer in the final stage, comprising a Dropout
+layer, another new layer, and a Classifier Layer. TABLE III
+highlights the key parameter differences between the original
+two BERT models and SecurityBERT.
+1) BERT Embeddings: The BERT Embeddings section
+starts with Word embeddings, succeeded by Position em-
+beddings and then Token type embeddings. To stabilize the
+activations, there is a Layer Normalization with a size of 128,
+followed by a Dropout layer with a rate of 0.1.
+2) BERT Self Attention: The BERT Self Attention com-
+prises three primary linear transformations for the Key, Query,
+and Value. Each of these transformations has input and output
+
+PPFLE encoding
+BERT Embeddings
+Embedding(512, 128)
+Embedding(2, 128)
+LayerNorm((128,), eps=1e-12,
+elementwise_affine=True)
+Dropout(p=0.1, inplace=False)
+Embedding(30522, 128,
+padding_idx=0)
+Word
+embeddings
+Position
+embedding
+Token
+type
+embeddings
+Normalization
+layer
+Dropout
+layer
+BERT Self Attention
+Linear(in_features=128,
+out_features=128, bias=True)
+Linear(in_features=128,
+out_features=128, bias=True)
+Dropout(p=0.1, inplace=False)
+Linear(in_features=128,
+out_features=128, bias=True)
+Query
+Key
+Value
+Dropout
+layer
+BERT Self Output
+LayerNorm((128,), eps=1e-12,
+elementwise_affine=True)
+Dropout(p=0.1, inplace=False)
+Linear(in_features=128,
+out_features=128, bias=True)
+Dropout
+layer
+Normalization
+Layer
+Dense
+Layer
+BERT Intermediate
+GELUActivation()
+Linear(in_features=128,
+out_features=512, bias=True)
+Dense
+Layer
+Intermediate_act_fn
+layer
+BERT Attention
+BERT output
+LayerNorm((128,), eps=1e-12,
+elementwise_affine=True)
+Linear(in_features=512,
+out_features=128, bias=True)
+Dense
+Layer
+Dropout(p=0.1, inplace=False)
+Dropout
+layer
+Normalization
+Layer
+BERT Pooler
+Linear(in_features=128,
+out_features=128, bias=True)
+Tanh()
+Dense
+layer
+Activation
+layer
+Dropout(p=0.1, inplace=False)
+Linear(in_features=128,
+out_features=15, bias=True)
+Classifier
+Layer
+Dropout
+layer
+BERT FINAL
+OUTPUT
+INPUT
+Fig. 5. SecurityBERT architecture.
+
+features sized at 128. Another Dropout layer with a rate of 0.1
+is included to prevent overfitting.
+3) BERT Self Output: The BERT Self Output section
+features a Linear dense layer with an input and output feature
+size of 128. A Layer Normalization complements this, also
+sized at 128, and a Dropout layer with a rate of 0.1 for
+regularization.
+4) BERT Intermediate: In the BERT Intermediate part,
+there’s a dense layer with input features of 128 and output
+features expanded to 512. This section employs the GELU
+activation function.
+5) BERT Output: In the BERT Output segment of the
+model, the final layer is a Linear dense layer that transforms
+the 512 features back to 128.
+6) BERT Pooler+BERT Final: After a Tanh activation in
+the Bert Pooler, the output is streamlined through another Lin-
+ear layer, further reducing the feature size to 15, representing
+the final output. This reduction is a crucial aspect of the model,
+preparing it for the 15 distinct classification tasks (14 attacks
++ 1 normal traffic).
+J. Model Parameters
+The precise parameter choices are among the most critical
+aspects of a BERT model. Incorrectly selected parameters can
+significantly influence the model’s performance. The model
+uses a Byte-Pair Encoding Tokenizer, which provides a reliable
+and effective means of splitting input data into manageable
+tokens. The training data utilized by the model amounts to
+661,767,168 tokens, with a limited vocabulary size of 5000.
+The minimum token frequency for SecuriyBERT is set at
+2, while the model supports a maximum sequence length of
+737 and a minimum sequence length of 619. The truncation
+settings limit the sequence length to a maximum 512, ensuring
+data consistency and model stability. Special tokens used by
+the model include <s>, <pad>, </s>, <unk>, and <mask>. Re-
+garding processing power, the model works with a batch size
+of 128 and a hidden size of 128. The model architecture com-
+prises two hidden layers and utilizes four attention heads to
+process the input data. The intermediate size is set at 512, and
+the maximum position embeddings at 512, providing enough
+room for extensive and complex computations. The model can
+identify and respond to 14 different attacks, demonstrating
+its versatility and broad applicability. The SecuriyBERT
+is based on 11,174,415 parameters that are fine-tuned for
+optimal performance. Lastly, the model runs on an Nvidia
+A100 GPU, a powerful hardware accelerator that enables rapid
+data processing and real-time response capabilities.
+TABLE IV summarizes the experimental parameter con-
+figuration, carefully designed to optimize performance and
+functionality. With the application of these parameters, our
+new SecurityBERT model exhibits the capability to identify
+fourteen distinct types of attacks with remarkable accuracy.
+IV. P ERFORMANCE EVALUATION OF SECURITY BERT
+In this section, we evaluate the performance of the newly
+proposed SecurityBERT model, through rigorous testing
+and comparative analysis. We show that the newly proposed
+model achieves a remarkable accuracy of 98.2%, which, to
+TABLE IV
+CONFIGURATION AND PARAMERES OF SECURITY BERT.
+Parameter Value
+Tokenizer type Byte-Pair Encoding Tokenizer
+Training data 661,767,168 tokens
+V ocabulary size 5000
+Minimum token frequency 2
+Maximum sequence length 737
+Minimum sequence length 619
+Truncation settings Max length=512
+Special tokens <s>, <pad>, </s>, <unk>,<mask>
+Batch size 128
+Hidden size 128
+Number of hidden layers 2
+Number of attention heads 4
+Intermediate-size 512
+Maximum position embeddings 512
+Number of attacks 14
+Total number of parameters 11,174,415
+Hardware accelerator GPU Nvidia A100
+the best of our knowledge, stands as the highest accuracy
+ever attained using an ML algorithm detecting IoT attacks on
+realistic real-world network traffic.
+A. Experimental Results
+To ensure appropriate comparisons with results from other
+models, we rely on standard measurements, namely Preci-
+sion, Recall, F1-Score, and Support measurements. These
+metrics are crucial in comprehensively evaluating the model’s
+performance and providing a meaningful assessment of its
+capabilities.
+We partitioned the Edge-IIoTset dataset conventionally, al-
+locating 80% of the samples for training and reserving 20%
+for evaluation. The model has not previously been exposed
+to the evaluation data, and we assess its effectiveness using
+those samples. TABLE V presents the distribution of different
+types of cyber attack samples across training and evaluation
+data sets.
+TABLE V
+DISTRIBUTION OF DATA ACROSS 14 ATTACK TYPES .
+Attack Type Nb. of Samples Train. Data Eval. Data
+Normal 1,615,643 1,292,514 323,129
+DDoS_UDP 121,568 88,027 22,007
+DDoS_ICMP 116,436 93,149 23,287
+SQL_injection 51,203 40,962 10,241
+Password 50,153 40,122 10,031
+Vulnerability_scanner 50,110 40,088 10,022
+DDoS_TCP 50,062 40,050 10,012
+DDoS_HTTP 49,911 39,929 9,982
+Uploading 37,634 30,107 7,527
+Backdoor 24,862 19,890 4,972
+Port_Scanning 22,564 18,051 4,513
+XSS 15,915 12,732 3,183
+Ransomware 10,925 8,740 2,185
+MITM 1,214 320 80
+Fingerprinting 1,001 801 200
+Max Count 2,219,201 1,765,482 441,371
+TABLE VI presents the detailed classification report for the
+SecuriyBERT model on various network attack classes.
+FIGURE 6 shows the accuracy and loss history during the
+SecuriyBERT training changes over four epochs.
+
+Fig. 6. Accuracy and loss history of SecurityLLM training in 4 epochs.
+TABLE VI
+CLASSIFICATION REPORT OF SECURITY BERT.
+Class Precision Recall F1-Score Support
+Normal 1.00 1.00 1.00 323,129
+DDoS_UDP 1.00 1.00 1.00 22,007
+DDoS_ICMP 1.00 1.00 1.00 23,287
+SQL_injection 0.85 0.83 0.84 10,241
+Password 0.85 0.81 0.83 10,031
+DDoS_TCP 1.00 1.00 1.00 10,012
+DDoS_HTTP 0.89 0.99 0.94 9,982
+Vul_scanner 1.00 0.94 0.97 10,022
+Uploading 0.79 0.86 0.83 7,527
+Backdoor 0.82 0.94 0.87 4,972
+Port_Scanning 0.87 1.00 0.93 4,513
+XSS 0.94 0.76 0.84 3,183
+Ransomware 1.00 0.40 0.57 2,185
+Fingerprinting 0.00 0.00 0.00 200
+MITM 1.00 1.00 1.00 80
+Macro Avg 0.87 0.84 0.84 441,371
+Weighted Avg 0.98 0.98 0.98 441,371
+Accuracy 0.982 (98.2%)
+1) ROC AUC Scores for Cyber Threat Classification:
+FIGURE 7 presents various classes’ Receiver Operating Char-
+acteristic Area Under the Curve (ROC AUC) scores. These
+scores indicate the SecurityBERT model’s performance,
+with a value of 1.0 being perfect. Classes "Normal", "UDP",
+"TCP", and "MITM" demonstrate perfect classification with
+an AUC score of 1.0, which suggests that the model can flaw-
+lessly differentiate these classes from the others. The classes
+"ICMP", "SQL", "Pass", "HTTP", "Scan", "Upload", "Back",
+"Port", "XSS", and "Rans" all have AUC scores exceedingly
+close to 1.0, ranging from approximately 0.9976 to 0.999988.
+This implies a near-perfect classification for these classes,
+with very minor misclassifications. On the lower end of the
+performance spectrum, the class "Fing" has an AUC score of
+0.991569, which, while still indicative of strong performance,
+means it has a slightly higher misclassification rate than the
+other classes. The SecurityBERT model generally exhibits
+stellar performance across all classes, with almost all of them
+Fig. 7. ROC AUC Scores for Cyber Threat Classification.
+achieving near-perfect or perfect classification.
+2) Confusion Matrix: A visual depiction of the confusion
+matrix from the SecuriyBERT classification is presented in
+FIGURE 8.
+For the ’Normal’ class and most types of DDoS attacks,
+including ’DDoS_UDP’, ’DDoS_ICMP’, and ’DDoS_TCP’,
+the model achieved perfect scores in terms of precision,
+recall, and F1-score, showing a high accurate classification
+performance on these types (c.f. TABLE VI). It is note-
+worthy to mention the high support count for the ’Normal’
+class, which amounts to 323, 129 instances. The performance
+on ’SQL_injection’, ’Password’, ’DDoS_HTTP’, ’Uploading’,
+’Backdoor’, and ’Port_Scanning’ classes was relatively lower
+but still commendable, with F1-scores ranging from 0.83 to
+0.94. Notably, ’DDoS_HTTP’ and ’Port_Scanning’ achieved a
+remarkably high recall of 0.99 and 1.00, respectively, indicat-
+ing that the model could identify almost all instances of these
+attacks when they occur. ’Vul_scanner’ had a high precision
+
+Fig. 8. Confusion matrix of SecurityBERT classification.
+and a slightly lower recall of 0.94, resulting in an F1-score
+of 0.97, showing good performance in identifying this type
+of attack. ’Ransomware’ showed a high precision of 1.00, but
+with a significantly lower recall of 0.40, resulting in an F1-
+score of 0.57, suggesting that while the model made correct
+predictions for the ’Ransomware’ class, it missed a significant
+portion of actual instances.
+An examination of the confusion matrix reveals that, while
+the ransomware classification did experience misclassification
+in a substantial proportion of instances, most misclassifications
+occurred within the ’Backdoors’ category. This category bears
+notable similarities with the ransomware category in real-
+life traffic data. Consequently, if our model misclassifies
+ransomware as a backdoor, it will not have a significant im-
+pact, maintaining satisfactory results in practical applications.
+The classes ’XSS’ and ’MITM’ showed good performance
+with F1-scores of 0.84 and 1.00, respectively, demonstrating
+that the model handled these classes well. Interestingly, the
+’Fingerprinting’ class had a precision, recall, and F1-score of
+0, indicating a complete misclassification for these instances
+by the model. We again highlight that, much like the backdoor-
+ransomware misclassification scenario, a considerable pro-
+portion of the ’Fingerprint’ misclassifications pertain to the
+’ICMP’ class. Misclassifying ’Fingerprint’ as ’XSS,’ for exam-
+ple, would ordinarily be a substantial issue in misclassification.
+However, in practical applications, these misclassifications
+bear no real consequence since the ’Fingerprint’ and ’ICMP’
+classes closely resemble each other.
+The average recall and F1-score were all 0.84 on the
+macro level. The weighted average was considerably higher
+at 0.98 for all three metrics, suggesting a good performance
+overall. The slight difference between these two averages may
+be due to the imbalanced nature of the dataset, as classes
+with larger support have a greater influence on the weighted
+average. The overall accuracy of the model, measuring the
+proportion of correct predictions made out of all predictions,
+was 0.982, showing a high degree of the predictive power of
+the SecurityBERT model in identifying different types of
+network attacks.
+3) WeightWatcher - Empirical Spectral Density (ESD):
+WeightWatcher (WW) is an open-source diagnostic tool de-
+signed for examining Deep Neural Networks (DNNs) and can
+analyze various layers within a model. WeightWatcher can
+assist in identifying signs of overfitting and underfitting within
+particular layers of pre-trained or trained DNNs. We employed
+WW to optimize performance throughout our experiments,
+modifying the model’s parameters to achieve optimal results.
+FIGURE 9 presents the Power Law (PL) exponent ( α) values
+when plotted against layer IDs, revealing intriguing insights
+into the weight matrix properties of SecurityBERT. FIG-
+URE 10 presents the Empirical Spectral Density (ESD) for
+Layer 14. FIGURE 11 presents the Log-Lin Empirical Spectral
+Density (ESD) for Layer 14.
+Fig. 9. Power Law (PL) exponent ( α) values.
+Initial layers, especially the first, show a significantly high
+α value of around 10.43, suggesting a distinct weight ini-
+tialization or early layer behavior. As we progress deeper
+into the network, the α values stabilize around 2 to 3, with
+many layers hovering close to the 2 mark. An α value near 2
+indicates weight matrices possessing heavy-tailed properties,
+which, according to [34], smaller values (α ≈ 2) are associated
+with models that generalize better.
+According to the measurements presented,
+SecurityBERT can generalize effectively to new data
+that closely resembles the patterns observed during testing on
+the training dataset.
+B. Performance Comparison
+Numerous research studies have assessed the accuracy of
+detecting the 14 attacks in the Edge-IIoTset dataset. In this
+section, we have specifically analyzed research conducted by
+various authors.
+The creators of the Edge-IIoTset dataset tested various
+traditional ML algorithms on it, including Decision Tree (DT),
+
+TABLE VII
+COMPARISON OF SECURITY BERT WITH TRADITIONAL ML AND DL MODELS .
+AI type Authors Year AI Model Accuracy
+Traditional ML
+Ferrag et al. [9] 2022 Decision Tree (DT) 67.11%
+Ferrag et al. [9] 2022 Random Forest (RF) 80.83%
+Ferrag et al. [9] 2022 Support Vector Machines (SVM) 77.61%
+Aouedi et al. [27] 2023 DT + RF / FL 90.91%
+Zhang et al. [35] 2023 K-Nearest Neighbor (KNN) 93.78%
+Ferrag et al. [9] 2022 K-Nearest Neighbor (KNN) 79.18%
+Deep learning models
+Friha et al. [23] 2023 CNN / CL / No-DP 94.84%
+Friha et al. [23] 2023 CNN / FL / No-DP 93.96%
+Aljuhani et al. [36] 2023 CSAE + ABiLSTM 94.40%
+Friha et al. [17] 2022 Recurrent Neural Network (RNN) 94%
+Ding et al. [37] 2023 Long short-term memory (LSTM) 94.96%
+Ferrag et al. [9] 2022 Deep Neural Network (DNN) 94.67%
+Friha et al. [17] 2022 Deep Neural Network (DNN) 93%
+E. M.d. Elias et al. [38] 2022 CNN-LSTM 97.14%
+Ferrag et al. [39] 2023 Transformer model w/o Tokenization and Embedding 94.55%
+Large language model - - BERT without PPFLE 51.3%This work 2024 SecurityBERT with PPFLE 98.20%
+CNN: Convolutional Neural Network, CL: Centralized Learning, FL: federated learning, DP: Differential Privacy, CSAE: Contractive Sparse AutoEncoder,
+ABiLSTM: Attention-based Bidirectional Long Short Term Memory.
+Fig. 10. Empirical Spectral Density (ESD) for Layer 14.
+Random Forest (RF), Support Vector Machines (SVM), and K-
+Nearest Neighbor (KNN). Among these traditional methods,
+DT exhibited the lowest performance with an accuracy of
+only 67.11%, while RF outperformed the others with an
+accuracy of 80.83%. In addition to these traditional algorithms,
+a Deep Neural Network (DNN) test was conducted, which
+outperformed the others, boasting an accuracy of 94.67%.
+The ultimate objective of this research is to develop a model
+capable of achieving nearly flawless real-time accuracy while
+maintaining a relatively compact model size suitable for de-
+ployment on IoT-embedded devices. This requirement explic-
+itly rules out resource-intensive solutions like utilizing pre-
+trained LLMs, which, although capable of delivering high ac-
+curacy, are impractical for constrained devices regarding real-
+time packet analysis due to their significant resource demands.
+Following the initial dataset release, numerous authors tried to
+enhance accuracy using various model combinations and novel
+Fig. 11. Log-Lin Empirical Spectral Density (ESD) for Layer 14.
+architectural designs. TABLE VII presents the comparative
+accuracy of the proposed model, namely SecurityBERT,
+against the traditional ML models and Deep Learning (DL)
+models.
+Friha et al. [23] explored the potential of CNNs to exceed
+the 95% accuracy. They experimented with various setups,
+including Centralized Learning (CL) and Federated Learning
+(FL), both with and without Differential Privacy (DP). Using
+CL without DP, their best model attained an accuracy of
+94.84%. E. M.d. Elias et al. combined the CNN approach
+with Long-Short Term Memory (LSTM). This combination
+surpassed the 95% threshold, reaching an impressive accuracy
+of 97.14% on the Edge-IIoTset dataset, solely by extracting
+features from the transport and network layers. A recent
+research paper by Ferrag et al. [29] explored an innovative
+method. They introduced a simple GAN and Transformer-
+based architecture without any tokenization or embeddings.
+
+The model obtained a 94.55% accuracy rate, and in this
+study, they raised the question of whether tokenization could
+pose challenges when applied to IoT datasets due to the
+unstructured nature of IoT network data, making it challenging
+to capture the semantics of closely resembling patterns like
+TCP scans or UDP scans.
+The main objective of our paper was to create a novel
+model capable of exceeding an already exceptionally high
+level of accuracy. To the best of our knowledge, we have
+reached a record-breaking accuracy of 98.2% in classifying
+the 14 types of attacks, as showcased in TABLE VI. This
+achievement represents the highest accuracy ever achieved in
+the multiclassification of these attack categories.
+C. Real-life environment integration
+In the original Edge-IIoTset dataset, feature extraction is
+derived from genuine PCAP files. This implies that replicating
+the same results in real-life scenarios becomes feasible if we
+possess real traffic data. We can substitute the PCAP files
+used in the Edge-IIoTset dataset [9] with real-life internal
+network traffic, employing a suitable sniffing tool to generate
+the PCAP file. FIGURE 12 provides a visual representation of
+the experimental setup where SecurityBERT is seamlessly
+integrated into a real-life network environment. This system
+is designed to detect network incidents with remarkable accu-
+racy, leveraging real-time network packet data.
+1) Inference time: To implement the model on IoT devices,
+evaluating whether the inference time is sufficiently fast is
+essential. If the model is overly complex and exhibits slow
+inference times on an average CPU, its viability in real-
+world environments becomes questionable. TABLE VIII offers
+a detailed comparative analysis of computation times across
+different hardware platforms, specifically focusing on the
+inference task of the SecuriyBERT model. The figures in
+the table denote the average inference time derived from 1000
+measurements.
+Hardware Average Inference Time (sec)
+A100 GPU 0.0164
+T4 GPU 0.0244
+V100 GPU 0.0277
+TPU 0.0327
+CPU* 0.1582
+*Intel(R) Xeon(R) CPU @ 2.20GHz
+TABLE VIII
+INFERENCE TIME OF SECURIY BERT A CROSS DIFFERENT HARDWARE
+PLATFORMS
+The devices evaluated include three NVIDIA GPU models
+(A100, T4, and V100), Google’s Tensor Processing Unit
+(TPU), and a general-purpose CPU. Each entry, denoted in
+seconds, reflects each hardware platform’s time to perform the
+inference using SecuriyBERT. The A100 GPU is the most
+efficient in this context, completing the inference quickly. The
+pivotal metric here is the 0.15 sec CPU inference time, signi-
+fying that the model can be efficiently deployed on resource-
+limited devices for analyzing real-life traffic. Additionally,
+given its compact size of just 16.7 MB, the model is well-
+suited for deployment in embedded devices.
+                         
+                        
+Zeek
+PCAP
+Packet
+snififng
+Tshark
+Feature extraction
+Data collection
+PPFLE encoding
+Normal DoS
+Internal network
+Security
+BERT
+Classification
+Fig. 12. Real-life experimental setup using SecurityBERT.
+2) Reducing MTTR: Integrating SecurityBERT into an
+embedded device and deploying it within an IoT network
+makes it possible to substantially enhance detection accuracy
+and leverage its high-speed performance to identify malicious
+activities within internal networks in real-time quickly. This,
+in turn, can lead to a notable reduction in Mean Time to
+Remediate (MTTR).
+Implementing AI in software security and incident handling
+is not a recent development in software security. For instance,
+companies like Rubrik3 and Microsoft have adopted generative
+AI models to optimize operations and enhance efficiency. For
+instance, if Rubrik’s Security Cloud machine detects abnormal
+behavior, it automatically generates an incident in Microsoft’s
+Sentinel. By employing this proactive approach, they can
+3https://www.rubrik.com/products
+
+achieve faster response times and more effective management
+of potential security threats.
+Similarly, SecurityBERT can be seamlessly integrated
+into existing real-world systems, thereby augmenting the over-
+all accuracy and detection rate of these pre-existing systems.
+V. C ONCLUSION
+The innovative application of BERT architecture for cyber
+threat detection, embodied in SecurityBERT, demonstrated
+remarkable efficiency, contradicting initial assumptions re-
+garding its incompatibility due to the reduced significance
+of syntactic structures. Experimental results underscored the
+superiority of this approach over conventional ML and DL
+models, including CNNs, deep learning networks, and re-
+current neural networks. The SecurityBERT model, tested
+on a collected cybersecurity dataset, exhibited an outstanding
+capability to identify fourteen distinct types of attacks with an
+accuracy rate of 98.2%.
+While this paper has made significant progress in advancing
+the use of LLMs in cybersecurity, future research directions
+can take several routes to enhance these promising findings
+further. One potential avenue involves fine-tuning and expand-
+ing the SecurityBERT model to enhance its performance
+across various attack types, incorporating adversarial attacks
+and more complex threats. In addition, due to the evolving
+nature of cyber threats, continuous updating and training of
+SecurityBERT model on the latest real-world datasets will
+be imperative to maintain its efficacy.
+An exciting and promising avenue for future research is
+delving into methods to autonomously implement mitigations
+based on the classification of SecurityBERT. This advance-
+ment could lead to automated patch management, antivirus
+management, network reconfiguration, port management, and
+numerous other facets of cybersecurity management.
+REFERENCES
+[1] Statista Report. Internet of Things (IoT) - Statistics & Facts. Blog post,
+Sept. 2023.
+[2] Nour Moustafa, Nickolaos Koroniotis, Marwa Keshk, Albert Y Zomaya,
+and Zahir Tari. Explainable intrusion detection for cyber defences in the
+internet of things: Opportunities and solutions. IEEE Communications
+Surveys & Tutorials, 2023.
+[3] Stefano Silvestri, Shareeful Islam, Spyridon Papastergiou, Christos Tza-
+gkarakis, and Mario Ciampi. A machine learning approach for the
+nlp-based analysis of cyber threats and vulnerabilities of the healthcare
+ecosystem. Sensors, 23(2):651, 2023.
+[4] Chandra Thapa, Seung Ick Jang, Muhammad Ejaz Ahmed, Seyit
+Camtepe, Josef Pieprzyk, and Surya Nepal. Transformer-based language
+models for software vulnerability detection. In Proceedings of the 38th
+Annual Computer Security Applications Conference , pages 481–496,
+2022.
+[5] Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova.
+Bert: Pre-training of deep bidirectional transformers for language un-
+derstanding. arXiv preprint arXiv:1810.04805 , 2018.
+[6] Abir Rahali and Moulay A. Akhloufi. Malbert: Malware detection using
+bidirectional encoder representations from transformers*. 2021 IEEE
+International Conference on Systems, Man, and Cybernetics (SMC) ,
+pages 3226–3231, 2021.
+[7] Yunus Emre Seyyar, Ali Gökhan Yavuz, and Halil Murat Ünver. An
+attack detection framework based on bert and deep learning. IEEE
+Access, 10:68633–68644, 2022.
+[8] Song Chen and Hai Liao. Bert-log: Anomaly detection for system logs
+based on pre-trained language model. Applied Artificial Intelligence, 36,
+2022.
+[9] Mohamed Amine Ferrag, Othmane Friha, Djallel Hamouda, Leandros
+Maglaras, and Helge Janicke. Edge-iiotset: A new comprehensive
+realistic cyber security dataset of iot and iiot applications for centralized
+and federated learning. IEEE Access, 10:40281–40306, 2022.
+[10] Natasha Alkhatib, Maria Mushtaq, Hadi Ghauch, and Jean-Luc Danger.
+Can-bert do it? controller area network intrusion detection system
+based on bert language model. In 2022 IEEE/ACS 19th International
+Conference on Computer Systems and Applications (AICCSA) , pages
+1–8. IEEE, 2022.
+[11] Ehsan Aghaei, Xi Niu, Waseem Shadid, and Ehab Al-Shaer. Securebert:
+A domain-specific language model for cybersecurity. In International
+Conference on Security and Privacy in Communication Systems , pages
+39–56. Springer, 2022.
+[12] Priyanka Ranade, Aritran Piplai, Anupam Joshi, and Tim Finin. Cybert:
+Contextualized embeddings for the cybersecurity domain. 2021 IEEE
+International Conference on Big Data (Big Data) , pages 3334–3342,
+2021.
+[13] Keping Yu, Liang Tan, Shahid Mumtaz, Saba Al-Rubaye, Anwer Al-
+Dulaimi, Ali Kashif Bashir, and Farrukh Aslam Khan. Securing critical
+infrastructures: Deep-learning-based threat detection in iiot. IEEE
+Communications Magazine, 59(10):76–82, 2021.
+[14] Bernardo Breve, Gaetano Cimino, and Vincenzo Deufemia. Identifying
+security and privacy violation rules in trigger-action iot platforms with
+nlp models. IEEE Internet of Things Journal , 10(6):5607–5622, 2023.
+[15] Zhendong Wang, Jingfei Li, Shuxin Yang, Xiao Luo, Dahai Li, and
+Soroosh Mahmoodi. A lightweight iot intrusion detection model
+based on improved bert-of-theseus. Expert Systems with Applications ,
+238:122045, 2024.
+[16] Djallel Hamouda, Mohamed Amine Ferrag, Nadjette Benhamida, and
+Hamid Seridi. Ppss: A privacy-preserving secure framework using
+blockchain-enabled federated deep learning for industrial iots. Pervasive
+and Mobile Computing , page 101738, 2022.
+[17] Othmane Friha, Mohamed Amine Ferrag, Lei Shu, Leandros Maglaras,
+Kim-Kwang Raymond Choo, and Mehdi Nafaa. Felids: Federated
+learning-based intrusion detection system for agricultural internet of
+things. Journal of Parallel and Distributed Computing, 165:17–31, 2022.
+[18] Shitharth Selvarajan, Gautam Srivastava, Alaa O Khadidos, Adil O
+Khadidos, Mohamed Baza, Ali Alshehri, and Jerry Chun-Wei Lin. An
+artificial intelligence lightweight blockchain security model for security
+and privacy in iiot systems. Journal of Cloud Computing , 12(1):38,
+2023.
+[19] Yizheng Chen, Zhoujie Ding, Xinyun Chen, and David Wagner. Diver-
+sevul: A new vulnerable source code dataset for deep learning based
+vulnerability detection. arXiv preprint arXiv:2304.00409 , 2023.
+[20] Maryam Douiba, Said Benkirane, Azidine Guezzaz, and Mourade
+Azrour. An improved anomaly detection model for iot security using
+decision tree and gradient boosting. The Journal of Supercomputing ,
+79(3):3392–3411, 2023.
+[21] Hamidreza Jahangir, Subhash Lakshminarayana, Carsten Maple, and
+Gregory Epiphaniou. A deep learning-based solution for securing the
+power grid against load altering threats by iot-enabled devices. IEEE
+Internet of Things Journal , 2023.
+[22] Fei Hu, Wuneng Zhou, Kaili Liao, Hongliang Li, and Dongbing Tong.
+Towards federated learning models resistant to adversarial attacks. IEEE
+Internet of Things Journal , 2023.
+[23] Othmane Friha, Mohamed Amine Ferrag, Mohamed Benbouzid, Tarek
+Berghout, Burak Kantarci, and Kim-Kwang Raymond Choo. 2df-
+ids: Decentralized and differentially private federated learning-based
+intrusion detection system for industrial iot. Computers & Security ,
+page 103097, 2023.
+[24] Chinmay Chakraborty, Senthil Murugan Nagarajan, Ganesh Gopal De-
+varajan, TV Ramana, and Rajanikanta Mohanty. Intelligent ai-based
+healthcare cyber security system using multi-source transfer learning
+method. ACM Transactions on Sensor Networks , 2023.
+[25] Xin Wang, Chongrong Fang, Ming Yang, Xiaoming Wu, Heng Zhang,
+and Peng Cheng. Resilient distributed classification learning against
+label flipping attack: An admm-based approach. IEEE Internet of Things
+Journal, 2023.
+[26] Junyi Liu, Yifu Tang, Haimeng Zhao, Xieheng Wang, Fangyu Li, and
+Jingyi Zhang. Cps attack detection under limited local information
+in cyber security: An ensemble multi-node multi-class classification
+approach. ACM Transactions on Sensor Networks , 2023.
+[27] Ons Aouedi and Kandaraj Piamrat. F-bids: Federated-blending based in-
+trusion detection system. Pervasive and Mobile Computing, 89:101750,
+2023.
+[28] Mohamed Amine Ferrag, Leandros Maglaras, Sotiris Moschoyiannis,
+and Helge Janicke. Deep learning for cyber security intrusion detection:
+
+Approaches, datasets, and comparative study. Journal of Information
+Security and Applications , 50:102419, 2020.
+[29] Mohamed Amine Ferrag, Merouane Debbah, and Muna Al-Hawawreh.
+Generative ai for cyber threat-hunting in 6g-enabled iot networks.
+2023 IEEE/ACM 23rd International Symposium on Cluster, Cloud and
+Internet Computing Workshops (CCGridW) , pages 16–25, 2023.
+[30] Thomas Wolf, Lysandre Debut, Victor Sanh, Julien Chaumond, Clement
+Delangue, Anthony Moi, Pierric Cistac, Tim Rault, Rémi Louf, Morgan
+Funtowicz, et al. Huggingface’s transformers: State-of-the-art natural
+language processing. arXiv preprint arXiv:1910.03771 , 2019.
+[31] Yusuxke Shibata, Takuya Kida, Shuichi Fukamachi, Masayuki Takeda,
+Ayumi Shinohara, Takeshi Shinohara, and Setsuo Arikawa. Byte pair
+encoding: A text compression scheme that accelerates pattern matching.
+Researchgate, 1999.
+[32] Ali Araabi, Christof Monz, and Vlad Niculae. How effective is byte pair
+encoding for out-of-vocabulary words in neural machine translation?
+arXiv preprint arXiv:2208.05225 , 2022.
+[33] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion
+Jones, Aidan N Gomez, Łukasz Kaiser, and Illia Polosukhin. Attention
+is all you need. Advances in neural information processing systems , 30,
+2017.
+[34] Charles H Martin, Tongsu Peng, and Michael W Mahoney. Predicting
+trends in the quality of state-of-the-art neural networks without access
+to training or testing data. Nature Communications, 12(1):4122, 2021.
+[35] Xixi Zhang, Liang Hao, Guan Gui, Yu Wang, Bamidele Adebisi, and
+Hikmet Sari. An automatic and efficient malware traffic classification
+method for secure internet of things. IEEE Internet of Things Journal ,
+2023.
+[36] Ahamed Aljuhani, Prabhat Kumar, Rehab Alanazi, Turki Albalawi, Okba
+Taouali, AKM Najmul Islam, Neeraj Kumar, and Mamoun Alazab. A
+deep learning integrated blockchain framework for securing industrial
+iot. IEEE Internet of Things Journal , 2023.
+[37] Weiping Ding, Mohamed Abdel-Basset, and Reda Mohamed. Deepak-
+iot: An effective deep learning model for cyberattack detection in iot
+networks. Information Sciences, 634:157–171, 2023.
+[38] Erik Miguel de Elias, Vinicius Sanches Carriel, Guilherme Werneck
+De Oliveira, Aldri Luiz Dos Santos, Michele Nogueira, Roberto Hirata
+Junior, and Daniel Macêdo Batista. A hybrid cnn-lstm model for iiot
+edge privacy-aware intrusion detection. In 2022 IEEE Latin-American
+Conference on Communications (LATINCOM) , pages 1–6. IEEE, 2022.
+[39] Mohamed Amine Ferrag, Merouane Debbah, and Muna Al-Hawawreh.
+Generative ai for cyber threat-hunting in 6g-enabled iot networks. In
+2023 IEEE/ACM 23rd International Symposium on Cluster, Cloud and
+Internet Computing Workshops (CCGridW) , pages 16–25, 2023.

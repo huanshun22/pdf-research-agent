@@ -1,0 +1,555 @@
+APT-LLM: Embedding-Based Anomaly Detection
+of Cyber Advanced Persistent Threats Using Large
+Language Models
+Sidahmed Benabderrahmane 1, Petko Valtchev2, James Cheney 3, Talal Rahwan 1
+1 New York University, Division of Science.
+2 University of Montreal, UQAM.
+3 The University of Edinburgh, School of Informatics.
+{sidahmed.benabderrahmane, talal.rahwan}@nyu.edu, valtchev.petko@uqam.ca, jcheney@inf.ed.ac.uk
+Abstract—Advanced Persistent Threats (APTs) pose a ma-
+jor cybersecurity challenge due to their stealth and ability to
+mimic normal system behavior, making detection particularly
+difficult in highly imbalanced datasets. Traditional anomaly
+detection methods struggle to effectively differentiate APT-related
+activities from benign processes, limiting their applicability in
+real-world scenarios. This paper introduces APT-LLM, a novel
+embedding-based anomaly detection framework that integrates
+large language models (LLMs)—BERT, ALBERT, DistilBERT,
+and RoBERTa—with autoencoder architectures to detect APTs.
+Unlike prior approaches, which rely on manually engineered
+features or conventional anomaly detection models, APT-LLM
+leverages LLMs to encode process-action provenance traces into
+semantically rich embeddings, capturing nuanced behavioral
+patterns. These embeddings are analyzed using three autoencoder
+architectures—Baseline Autoencoder (AE), Variational Autoen-
+coder (V AE), and Denoising Autoencoder (DAE)—to model
+normal process behavior and identify anomalies. The best-
+performing model is selected for comparison against traditional
+methods. The framework is evaluated on real-world, highly
+imbalanced provenance trace datasets from the DARPA Trans-
+parent Computing program, where APT-like attacks constitute
+as little as 0.004% of the data across multiple operating systems
+(Android, Linux, BSD, and Windows) and attack scenarios. Re-
+sults demonstrate that APT-LLM significantly improves detection
+performance under extreme imbalance conditions, outperforming
+existing anomaly detection methods and highlighting the effec-
+tiveness of LLM-based feature extraction in cybersecurity.
+Keywords—Anomaly Detection, Deep Learning, Transformers,
+Large Language Models, AutoEncoders, Cyber-security.
+I. I NTRODUCTION
+Advanced Persistent Threats (APTs) are a class of cy-
+berattacks characterized by their stealth, sophistication, and
+long-term presence within targeted networks [1]. Rather than
+executing quick, indiscriminate hits, APT campaigns carefully
+exploit system weaknesses, maintain persistence, and exfiltrate
+sensitive data over extended periods. Their persistent nature
+and ability to evade traditional detection methods—often by
+blending in with legitimate system processes—make APTs
+particularly challenging to identify and mitigate [2].
+In recent years, Pre-trained Large Language Models (LLMs)
+have emerged as a groundbreaking approach across numerous
+domains [3]. LLMs such as BERT, RoBERTa, GPT, or recently
+DeepSeek utilize enormous amounts of unlabeled text to
+learn rich contextual embeddings, enabling them to capture
+semantic nuances far beyond the capabilities of earlier, task-
+specific models. This success in natural language processing
+has inspired researchers to leverage LLM-based embeddings
+for novel applications—including cybersecurity—where the
+ability to represent complex “behavioral signatures” or “event
+sequences” as textual embeddings can potentially detect ma-
+licious patterns [4].
+Building on these advances, we propose an LLM-driven
+APT detection framework designed to enhance the identifi-
+cation of stealthy behaviors within system logs and network
+traces. Our core idea is to convert low-level process events
+(e.g., file operations, network connections) into descriptive
+textual phrases, then extract embeddings using state-of-the-art
+LLMs. By combining these semantic-rich embeddings with an
+anomaly detection model—such as an autoencoder—we aim to
+detect hidden APT attacks in traces more effectively than con-
+ventional, signature-based methods. We evaluate our approach
+on real-world APT datasets, highlighting the potential of LLM
+embeddings to uncover subtle and malicious sequences often
+overlooked by standard methods.
+II. R ELATED WORK
+APT detection has long relied on a combination of rule-
+based approaches, signature matching, and heuristic analysis
+[2]. Classical solutions frequently inspect network traffic,
+system calls, or event logs to identify suspicious patterns.
+However, attackers often disguise APT behavior within nor-
+mal operating system activities, rendering purely signature-
+based methods insufficient. In the context of stealthy cam-
+paigns, conventional detection frameworks often fail to cap-
+ture low-frequency or polymorphic events leading to data
+arXiv:2502.09385v1  [cs.CR]  13 Feb 2025
+
+exfiltration. Recent works have introduced machine learning
+techniques—ranging from supervised classifiers to anomaly
+detection algorithms—aimed at capturing novel or stealthy
+behaviors [5], [6], [7], [8], [9], [10]. For example, intrusion de-
+tection systems (IDS) increasingly adopt textual, time series or
+graph-based models that encode dependencies between system
+events. Despite these advancements, the sophistication of APT
+tactics continues to outpace purely traditional approaches.
+In recent years, pre-trained LLMs have demonstrated remark-
+able capability in capturing semantic and contextual nuances
+across vast domains. Although they have primarily excelled
+in natural language processing tasks such as translation, sum-
+marization, and question-answering, researchers have begun
+to apply LLM-based embeddings to cybersecurity problems
+as well [11]. By transforming logs or system traces into
+textual narratives, LLMs can learn richer representations of
+process behaviors. These embeddings allow anomaly detection
+algorithms to isolate subtle deviations indicative of malicious
+activity. Despite their potential, these methods are still in the
+early stages, facing challenges such as high computational cost
+and the need for extensive domain adaptation [12].
+Although LLMs have shown promise in detecting anomalies,
+most studies remain in the proof-of-concept stage, lacking
+large-scale evaluations on real data or heterogeneous operating
+systems (OS). In addition, limited attention has been paid
+to the interpretability of LLM-derived features, which are
+critical in high-stakes environments, where security analysts
+need clear rationales for flagged anomalies. To address these
+gaps, our work proposes a comprehensive pipeline for APT de-
+tection that fuses LLM-based embeddings with robust anomaly
+detection, systematically evaluated across multiple OS datasets
+and real-world threat scenarios.
+III. P ROPOSED FRAMEWORK
+In this section, we present our APT-LLM detection frame-
+work, which leverages a provenance database of process events
+and netflow activities, pre-trained Large Language Models
+(LLMs) for embedding generation, and three autoencoder
+architectures for anomaly detection. The following paragraphs
+include key details to clarify each stage of our approach.
+A. Provenance Database
+Let D = {r1, r2, . . . ,rN } represent the provenance
+database of size N, where each record ri captures:
+• A process ID, pi.
+• A set of events, {ei1, ei2, . . .}.
+These records collectively define a high-level, system-wide
+trace that can be converted into textual descriptions for em-
+bedding extraction.
+B. Textual Representation and LLM Embeddings
+To harness LLM-based embeddings, we convert each record
+ri into a short sentence si. For instance, if ri corresponds to
+a process with events [open, write, send], we map it to: si =
+“Process pi has event open and event write and event send.”
+a) Embedding Extraction.
+We apply a pre-trained LLM, denoted generically by a
+function fLM(·) : Sentence 7→ Rd, which transforms the
+textual sentence si into a d-dimensional dense embedding xi.
+In our study, we experiment with several LLMs:
+1) BERT (Bidirectional Encoder Representations from
+Transformers) : Learns bidirectional context via masked
+language modeling.
+2) DistilBERT : A distilled (compressed) variant of BERT
+with fewer parameters. It is produced via knowledge dis-
+tillation, maintaining a good balance between accuracy
+and computational efficiency.
+3) ALBERT (A Lite BERT): Reduces model size through
+parameter sharing and factorized embeddings.
+4) RoBERTa (Robustly Optimized BERT): An optimized
+variant of BERT trained with longer sequences and
+dynamic masking.
+5) MiniLM : Compresses self-attention to achieve a small
+yet effective model.
+Each model outputs a high-dimensional vector (e.g., 768
+dimensions) encapsulating the process’s behavior in semantic
+form. By testing multiple LLMs, our framework evaluates how
+architectural differences (e.g., distillation, parameter sharing,
+encoder-decoder) impact the detection of stealthy APT. Hence,
+for record i we have the embedding: xi = fLM(si) ∈ Rd.
+C. Anomaly Detection with AutoEncoders
+Autoencoders (AEs) are unsupervised learning models that
+aim to encode input data into a compressed latent representa-
+tion and reconstruct the original input from it. They are widely
+used for anomaly detection, where high reconstruction errors
+indicate data that deviates from the normal distribution. In
+our APT-LLM framework, we extend a baseline AutoEncoder
+(AE) to its variants—Variational Autoencoders (V AEs) and
+Denoising Autoencoders (DAEs)—and introduce the use of
+attention mechanisms to enhance their performance. The mo-
+tivation behind using a Variational Autoencoder (V AE) is to
+introduce a probabilistic latent space, enabling the model to
+better capture the underlying data distribution and generalize
+beyond reconstruction, while a Denoising Autoencoder (DAE)
+is designed to improve robustness by learning to reconstruct
+clean inputs from noisy data; both extend the baseline Autoen-
+coder (AE), which focuses solely on deterministic compression
+and reconstruction without addressing probabilistic modeling
+(V AE) or noise resilience (DAE).
+1) Baseline Autoencoder (AE)
+The baseline autoencoder consists of two main components:
+• Encoder E(x; θE): Maps the input LLM embedding x ∈
+Rd to a latent representation z ∈ Rk, where k ≪ d:
+z = E(x; θE) =f (WEx + bE) where f (·) is a nonlinear
+activation function, and θE = {WE, bE} are the encoder
+parameters.
+• Decoder D(z; θD): Reconstructs the input x from z: ˆx =
+D(z; θD) =g(WDz+bD) where g(·) is another nonlinear
+activation function, and θD = {WD, bD} are the decoder
+parameters.
+
+The objective of AE is to minimize the reconstruction loss:
+LAE = ∥x− ˆx∥2. This ensures that z captures the most relevant
+features of x while enabling accurate reconstruction.
+2) Variational Autoencoder (VAE)
+Unlike AE, VAE introduces a probabilistic approach to
+the latent space by modeling z as a random variable: z ∼
+N (µ, σ2). The encoder outputs the mean µ and log-variance
+log σ2, which parameterize the latent Gaussian distribution:
+µ, log σ2 = E(x; θE). The decoder reconstructs x by sam-
+pling from the latent distribution using the reparameterization
+trick:z = µ + σ ⊙ ϵ, ϵ ∼ N(0, I). The V AE objective
+combines the Reconstruction Loss: Lrecon = ∥x − ˆx∥2, and
+KL Divergence that regularizes the latent space to follow a
+standard Gaussian prior: LKL = DKL
+
+N (µ, σ2)∥N (0, I).
+The total loss is: LV AE = Lrecon + βLKL where β controls
+the weight of the KL divergence term.
+3) Denoising Autoencoder (DAE)
+DAE extends AE by introducing noise into the input data
+during training. The noisy input ˜x is generated by adding
+Gaussian noise or masking random features: ˜x = x+η, η ∼
+N (0, σ2). The encoder maps ˜x to a latent representation:
+z = E(˜x; θE). The decoder reconstructs the original clean
+input x: ˆx = D(z; θD). The loss function minimizes the
+reconstruction error between x and ˆx: LDAE = ∥x − ˆx∥2.
+This encourages the model to learn robust representations that
+ignore irrelevant noise.
+4) Attention Mechanisms
+To enhance the representational power of AE, V AE and
+DAE autoencoders, we incorporate self-attention layers into
+the encoder. Self-attention enables the model to learn depen-
+dencies between different features, allowing it to focus on the
+most relevant aspects of the input.
+Given an input X ∈ Rn×d (the LLM embeddings),
+the attention mechanism computes: Attention (Q, K, V) =
+softmax
+
+QK T√dk  V where Q, K, and V are the query,
+key, and value matrices, respectively, derived from X.
+Multi-head attention extends this by using multiple at-
+tention mechanisms in parallel: MultiHead (Q, K, V) =
+Concat(head1, . . . ,headh)W O. Integrating attention layers al-
+lows the encoder to capture complex relationships within LLM
+embeddings, improving anomaly detection performance.
+D. Experimental Plan
+During training, we use predominantly normal data, en-
+suring the autoencoders (AE, DAE, V AE) learn a compact
+representation of typical (non-APT) process embeddings.
+To evaluate the different architectures in APT-LLM, we
+compare their effectiveness in anomaly detection using em-
+beddings generated from LLMs (BERT, ALBERT, RoBERTa,
+DistilBert and MiniLM). Each model is trained on embeddings
+from normal process-action traces and tested on both normal
+and anomalous samples. Performance is measured using:
+• Reconstruction Error: Distribution of reconstruction er-
+rors for normal vs. anomalous data.
+• Anomaly Detection Metrics: AUC-ROC.
+The results will highlight the relative strengths of each
+architecture and the impact of attention layers on anomaly
+detection.
+1) Anomaly Scoring
+After training on normal embeddings, the reconstruction
+error serves as an anomaly score . ri = ∥xi − ˆxi∥22 If ri
+exceeds a threshold τ, the record is flagged as a potential
+APT: flag(xi) =
+(
+1, if ri > τ,
+0, otherwise..
+Choosing τ can be based on a percentile of ri among known
+normal samples or tuned via validation metrics.
+E. Workflow Summary
+1) Data Collection: Extract a provenance database
+{r1, . . . ,rN } containing process actions, system calls,
+and other metadata.
+2) Sentence Generation: Map each record ri to a sentence
+si.
+3) LLM Embedding: Compute xi = fLM(si) for each
+record, where fLM is one of our chosen LLMs (BERT,
+DistilBERT, ALBERT, RoBERTa, or MiniLM).
+4) Noise Injection & Encoding: Obtain ˜xi by adding noise
+to xi, then encode ˜xi to latent vector zi.
+5) Training: Use normal data and train AE, V AE and DAE.
+6) Decoding & Reconstruction: Decode zi back to ˆxi,
+training on normal embeddings to minimize ∥xi − ˆxi∥22.
+7) Anomaly Detection: For new (test) samples, compute
+reconstruction errors ri. If ri > τ, label the sample as
+anomalous.
+IV. E XPERIMENTAL SETTINGS , RESULTS AND ANALYSIS
+A. Provenance Datasets
+The datasets used in this study are derived from
+DARPA’s Transparent Computing TC program1, pro-
+cessed through the ADAPT 2 (Automatic Detection of Ad-
+vanced Persistent Threats) project’s ingester. These datasets
+span four OS —Android, Linux, BSD, and Windows— and
+include two attack scenarios: Pandex and Bovia [8], [9], [10].
+Provenance graph data is processed into graph databases,
+followed by data integration and deduplication, resulting in
+Boolean-valued datasets that represent various aspects of sys-
+tem process behaviors. Each dataset row corresponds to a
+process and is encoded as a Boolean vector, where a value of
+1 indicates the presence of a specific attribute or event. Five
+data aspects are constructed for each OS and attack scenario:
+ProcessEvent (PE), which captures event types performed by
+processes; ProcessExec (PX), representing executable names
+starting the processes; ProcessParent (PP), denoting executa-
+bles of parent processes; ProcessNetflow (PN), detailing IP
+addresses and port names accessed by processes; and Proces-
+sAll (PA), a union of all attribute sets. With two scenarios, four
+OS, and five data aspect, a total of 40 datasets are created.
+Table I summarizes them, where the last column illustrates
+1https://www.darpa.mil/program/transparent-computing
+2https://gitlab.com/adaptdata
+
+their highly imbalanced nature, with APT attacks constituting
+as little as 0.004% of the data in some cases.
+B. Illustrative Examples of LLM Embeddings
+To explain the embedding generation process, we convert
+a sample process trace into textual representations and pass
+it through the LLMs. Each model uses its unique architec-
+ture and training strategy but outputs dense embeddings that
+capture the semantic meaning of the input.
+Suppose a process (id:123) performs the following events:
+• Open a file
+• Write to the file
+• Send network data
+This trace is represented as a sentence:
+‘‘Process 123 has event open a file
+and event write to the file and
+event send network data.’’
+We pass this sentence into the different LLMs, which tokenize
+it, process it through their architectures, and produce dense
+embeddings.
+Initially, BERT runs a tokenization process by splitting the
+input sentence into tokens, e.g., [CLS, Process, 123,
+has, event, open, .., event, write, ..,
+event, send, .., [SEP]] . Each token is converted
+into a numeric ID. Then BERT uses bidirectional attention to
+learn the context of each token based on both preceding and
+following tokens. For example, the embedding for event
+open a file incorporates its relationships to event
+write to the file and event send network
+data. The final output is a 768-dimensional vector for
+each token. To get a single vector for the sentence, we
+use mean pooling over all token embeddings or select the
+embedding of the [CLS] token. ALBERT on the other
+hand-side reduces model size by factorizing embedding
+parameters, and cross-layer parameter sharing. Similar
+to BERT, ALBERT tokenizes the input and generates
+embeddings using bidirectional attention. Despite its smaller
+size, ALBERT captures semantic relationships effectively.
+RoBERTa improves BERT by removing the next-sentence
+prediction task. It processes the input sentence similarly
+to BERT but achieves richer embeddings due to better
+training optimizations. Each token is represented by a
+1024-dimensional vector (for the large model), and sentence
+embeddings are derived through pooling. DistilBERT is a
+lighter, faster version of BERT, trained using knowledge
+distillation to retain 97% of BERT’s performance with 40%
+fewer parameters. The input is tokenized and passed through
+a smaller Transformer network, reducing computation time
+while still generating high-quality embeddings. Sentence
+embeddings are derived as 768-dimensional vectors, like
+BERT, but computed more efficiently. MiniLM compresses the
+attention mechanism in Transformers, significantly reducing
+the model size while maintaining strong performance on
+semantic tasks. MiniLM tokenizes the input and uses a highly
+compressed Transformer network to generate embeddings.
+Its efficiency makes it ideal for real-time applications.
+Embeddings are 384-dimensional vectors, smaller than BERT,
+making it computationally lightweight.
+C. Comparison of LLMs
+Using these multiple LLMs allows us to compare:
+• Embedding Quality: Larger models like RoBERTa might
+capture richer semantic nuances, while smaller models
+like DistilBERT and MiniLM provide efficiency.
+• Detection Performance: We evaluate how different em-
+beddings impact anomaly detection performance (e.g.,
+reconstruction error, AUC).
+D. Embeddings visualization
+Figure 1 provides T-SNE visualizations of the embeddings
+generated using five large language models (LLMs), show-
+casing the projection of normal data (blue points, label 0)
+and anomalies (orange points, label 1). In this example, the
+data points correspond to the PE data set of the Linux OS
+under the Bovia attack scenario. The embeddings highlight
+how LLM-based representations capture nuanced differences
+between normal and anomalous patterns. We generated these
+T-SNE visualizations for the entire collection of datasets for
+providing a clear clustering of normal points while isolat-
+ing anomalies. This visualization demonstrates the potential
+of LLMs in embedding provenance trace data for effective
+anomaly detection.
+(a) ALBERT
+ (b) BERT
+(c) RoBERTa
+(d) DistilBERT
+ (e) MiniLM
+Fig. 1: T-SNE Visualizations of Embeddings Using Different LLMs. Blue
+points (label 0) represent normal data, whereas orange points (label 1)
+represent anomalies. In this example, data belongs to PE dataset of Linux
+OS and Bovia scenario.
+E. AutoEncoders training and reconstruction errors
+The embedding vectors generated in the previous step
+with the five LLMs are used to train AE, V AE and DAE.
+
+Scenario Size P E P X P P P N P A nb attacks % nb attacksnb processes
+BSD 1 288 MB 76903 / 29 76698 / 107 76455 / 24 31 / 136 76903 / 296 13 0.02
+2 1.27 GB 224624 / 31 224246 / 135 223780 / 37 42888 / 62 224624 / 265 11 0.004
+Windows 1 743 MB 17569 / 22 17552 / 215 14007 / 77 92 / 13963 17569 / 14431 8 0.04
+2 9.53 GB 11151 / 30 11077 / 388 10922 / 84 329 / 125 11151 / 606 8 0.07
+Linux 1 2858 MB 247160 / 24 186726 / 154 173211 / 40 3125 / 81 247160 / 299 25 0.01
+2 25.9 GB 282087 / 25 271088 / 140 263730 / 45 6589 / 6225 282104 / 6435 46 0.01
+Android 1 2688 MB 102 / 21 102 / 42 0 / 0 8 / 17 102 / 80 9 8.8
+2 10.9 GB 12106 / 27 12106 / 44 0 / 0 4550 / 213 12106 / 295 13 0.10
+TABLE I: Experimental datasets of DARPA’s TC program used in our study. A dataset entry (columns 4 to 8) is described
+by a number of rows (processes) / number of columns (attributes). For instance, with ProcessAll (PA) obtained from the
+second scenario using Linux, the dataset has 282104 rows and 6435 attributes with 46 APT attacks (0.01%).
+Fig. 2: Training and Validation Loss Curve for the Autoencoder: The figure
+shows the decrease in training and validation loss (MSE) over 100 epochs,
+demonstrating the model’s convergence and generalization during training.
+Fig. 3: Scatter Plot of the AutoEncoder Reconstruction Errors by Sample
+Index: The figure illustrates the reconstruction errors (MSE) for each
+sample, with the red dashed line indicating the anomaly detection threshold.
+Points above the threshold represent detected anomalies.
+Figure 2 shows the training and validation loss curves for
+the baseline autoencoder over 100 epochs, using the previ-
+ous dataset (PE, Linux, Bovia). Both curves exhibit a steep
+decline during the initial epochs, indicating rapid learning
+and optimization. After approximately 20 epochs, the losses
+stabilize and decrease gradually, suggesting convergence of
+the model. The training loss remains slightly lower than the
+validation loss, highlighting a well-generalized model with
+minimal overfitting. The consistent alignment between the two
+curves over time reflects the autoencoder’s ability to learn
+meaningful representations of the input data while maintaining
+robustness on unseen validation samples. Figure 3 presents a
+scatter plot of reconstruction errors (MSE) from the baseline
+autoencoder. Each point represents a sample, with anomalies
+(red) identified when errors exceed the red dashed threshold.
+Most data points fall below this threshold, indicating normal
+samples, while a few outliers exceed it, demonstrating the
+Fig. 4: Heatmap of AUC Scores for LLM and Autoencoder Combinations:
+The figure shows the performance of five language models (LLMs) paired
+with three autoencoder architectures (AE, DAE, V AE) on anomaly detection
+tasks, with darker shades indicating higher AUC scores. Data belongs to PE
+dataset of Linux OS and Bovia scenario.
+effectiveness of reconstruction error for anomaly detection.
+Given the combination of 5 LLMs and 3 autoencoder ar-
+chitectures (AE, V AE, and DAE), we conducted extensive ex-
+periments by systematically testing all configurations (5 ×3) to
+identify the best-performing model for anomaly detection. For
+each combination, we generated ROC curves and calculated
+the corresponding AUC scores to comprehensively evaluate
+their performance. The heatmap in Figure 4 provides an
+overview of the AUC scores achieved by combinations of the
+five language models, and the autoencoder architectures (AE,
+DAE, and V AE) for the PE Linux Bovia dataset. ALBERT
+paired with V AE significantly outperforms other combinations,
+achieving the highest AUC score of 0.95, highlighting its
+ability to capture and reconstruct patterns effectively in this
+architecture. MiniLM also exhibits consistent performance
+across all autoencoder types, with its best result (AUC = 0.74)
+observed when combined with the V AE, demonstrating its
+lightweight yet robust capabilities. While DistilBERT shows
+moderate performance, peaking with V AE (AUC = 0.59),
+BERT and RoBERTa generally underperform except for slight
+improvements in certain configurations. The analysis under-
+scores the importance of selecting the right pairing of LLMs
+and autoencoders to optimize anomaly detection performance,
+with ALBERT-V AE emerging as the clear winner for the
+considered dataset.
+Figure 5 illustrates the ROC curves of the top-6 best-
+performing combinations identified from the heatmap, high-
+lighting their superior anomaly detection capabilities. The
+
+ROC curves provide a comparative analysis of the perfor-
+mance of the different combinations of LLMs paired with
+three autoencoder architectures. Each curve represents the true
+positive rate (TPR) against the false positive rate (FPR) for
+a specific LLM-autoencoder pairing, with the area under the
+curve (AUC) indicating the overall performance.
+We generated heatmaps of the AUC scores for all combina-
+tions of LLMs and autoencoder architectures across the re-
+maining datasets (5×3×40), and for each dataset, we identified
+the combination yielding the maximum AUC to serve as the
+baseline APT-LLM for comparison with existing anomaly de-
+tection methods. Indeed, for each dataset, the best-performing
+combination (LLM × AE) was evaluated against three classi-
+cal anomaly detection approaches—OC-SVM, DBSCAN, and
+Isolation Forest. The resulting AUC scores are presented in
+Heatmap 6.
+Fig. 5: ROC Curve Comparison for the Best performing models (PE dataset
+of Linux OS and Bovia scenario).
+Fig. 6: AUC heatmap comparing the performance of APT-LLM, OC-SVM,
+Isolation Forest, and DBSCAN across datasets from multiple OS (Windows,
+Linux, BSD, and Android) and provenance trace aspects. APT-LLM
+consistently achieves higher AUC scores, demonstrating its superior
+anomaly detection capabilities
+The results reveal significant differences in the AUC per-
+formance of various anomaly detection methods—APT-LLM,
+OC-SVM, Isolation Forest, and DBSCAN—across datasets
+spanning multiple OS (Windows, Linux, BSD, and Android)
+and provenance trace aspects. APT-LLM consistently outper-
+forms the baseline methods in most datasets, achieving the
+highest AUC scores. For example, in PX Windows Pandex,
+APT-LLM scores 0.97, compared to OC-SVM (0.85), Isolation
+Forest (0.23), and DBSCAN (0.51). Baseline methods such
+as OC-SVM show competitive performance in a few cases,
+particularly in BSD datasets, while Isolation Forest and DB-
+SCAN often show weaker results. These findings highlight the
+robustness and superior detection capabilities of the APT-LLM
+framework across diverse datasets and scenarios.
+V. C ONCLUSION
+In this paper, we presented APT-LLM, an embedding-based
+anomaly detection framework that leverages large language
+models and autoencoders to identify advanced APT cyber
+threats. By transforming process behaviors into textual rep-
+resentations, our approach introduces a novel perspective for
+anomaly detection tasks. Experimental results highlight signifi-
+cant improvements in APT detection performance, particularly
+in highly imbalanced scenarios, demonstrating the effective-
+ness and potential of LLM-based embeddings in advancing
+cybersecurity practices.
+REFERENCES
+[1] A. Ahmad, J. Webb et al., “Strategically-motivated advanced persistent
+threat: Definition, process, tactics and a disinformation model of coun-
+terattack,” Computers & Security , vol. 86, pp. 402–418, 2019.
+[2] N. I. Che Mat, N. Jamil, Y . Yusoff, and M. L. Mat Kiah, “A systematic
+literature review on advanced persistent threat behaviors and its detection
+strategy,” Journal of Cybersecurity , vol. 10, no. 1, p. tyad023, 2024.
+[3] Y . Chang, X. Wang, J. Wang, Y . Wu, L. Yang, K. Zhu, H. Chen, X. Yi,
+C. Wang, Y . Wang et al. , “A survey on evaluation of large language
+models,” ACM Transactions on Intelligent Systems and Technology ,
+vol. 15, no. 3, pp. 1–45, 2024.
+[4] F. N. Motlagh, M. Hajizadeh, M. Majd, P. Najafi, F. Cheng, and
+C. Meinel, “Large language models in cybersecurity: State-of-the-art,”
+arXiv preprint arXiv:2402.00891 , 2024.
+[5] A. Koufakou et al. , “A scalable and efficient outlier detection strategy
+for categorical data,” in 19th IEEE Int Conf on Tools with Artificial
+Intelligence(ICTAI 2007). IEEE, Oct. 2007, pp. 210–217.
+[6] K. Smets and J. Vreeken, “The odd one out: Identifying and char-
+acterising anomalies,” in Proceedings of the 2011 SIAM international
+conference on data mining . SIAM, 2011, pp. 804–815.
+[7] K. Narita and H. Kitagawa, “Outlier detection for transaction databases
+using association rules,” in 2008 The 9th Int Conf on Web-Age Informa-
+tion Management, 2008, pp. 373–380.
+[8] G. Berrada et al., “A baseline for unsupervised advanced persistent threat
+detection in system-level provenance,” Future Generation Computer
+Systems, vol. 108, pp. 401–413, 2020.
+[9] S. Benabderrahmane et al. , “A rule mining-based advanced persistent
+threats detection system,” in Proc of IJCAI21, Montreal, Canada ,
+Z. Zhou, Ed. ijcai.org, 2021, pp. 3589–3596.
+[10] S. Benabderrahmane, N. Hoang et al., “Hack me if you can: Aggregating
+autoencoders for countering persistent access threats within highly
+imbalanced data,” Future Gener. Comput. Syst. , vol. 160, pp. 926–941,
+2024.
+[11] Y . Chen et al. , “A survey of large language models for cyber threat
+detection,” Computers & Security , p. 104016, 2024.
+[12] M. Bayer et al. , “Cysecbert: A domain-adapted language model for
+the cybersecurity domain,” ACM Transactions on Privacy and Security ,
+vol. 27, no. 2, pp. 1–20, 2024.
